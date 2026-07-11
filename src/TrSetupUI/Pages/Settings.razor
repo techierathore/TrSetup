@@ -1,0 +1,343 @@
+@page "/settings"
+@inherits BoardComponentBase
+@using System.Net
+@using System.Text.RegularExpressions
+@using TrSetup.Core.Profiles
+@using TrBlazeUI.Components.Empty
+@inject ISettingsStore SettingsStore
+
+@* Settings / Configuration (REQ-UI-006, BRD-56): the full post-CLI config surface — machine roles,
+   the selected app profile, named endpoint addresses (today the LAN Mac IP), a read-only profile-details
+   table (built-in vs app-repo override source), the settings-file path, and Save / Cancel. On save the
+   board re-scopes to the new roles/app/endpoints without a page reload. *@
+<PageTitle>TrSetup — Settings</PageTitle>
+
+<header class="ts-topbar">
+    <SidebarTrigger />
+    <h1 class="ts-page-title">Settings</h1>
+    <div class="ts-topbar-spacer"></div>
+    <Button Variant="ButtonVariant.Ghost" OnClick="@(() => Nav.NavigateTo("/"))" data-testid="SettingsBackButton">
+        <LucideIcon Name="arrow-left" Size="16" />
+        <span>Back to board</span>
+    </Button>
+</header>
+
+<main class="ts-content">
+    <div class="ts-setup-col">
+        <div>
+            <h2 class="ts-setup-h2">Settings</h2>
+            <p class="ts-setup-lead">
+                Configure this machine — the roles it plays, the app profile the board scopes to, and the
+                network endpoints the Bridges checks probe. Changes are saved to the local settings file and
+                the board re-scopes without a reload. Secrets are never entered here (they are checked for
+                presence only).
+            </p>
+        </div>
+
+        @* ---- Role cards (REQ-UI-003 pattern) ---- *@
+        <div class="ts-role-grid">
+            @foreach (var vOption in RoleCatalog.Roles)
+            {
+                var vSelected = objRoles.HasFlag(vOption.Role);
+                <div class="ts-role-card @(vSelected ? "ts-checked" : "")"
+                     role="checkbox" aria-checked="@vSelected.ToString().ToLowerInvariant()" tabindex="0"
+                     @onclick="@(() => ToggleRole(vOption.Role))"
+                     @onkeydown="@(aArgs => OnRoleKey(aArgs, vOption.Role))"
+                     data-testid="@($"role-card-{vOption.Key}")">
+                    <span class="ts-role-cb"><Checkbox Checked="vSelected" /></span>
+                    <span class="ts-role-ic"><LucideIcon Name="@vOption.Icon" Size="18" /></span>
+                    <span class="ts-role-txt">
+                        <span class="ts-role-title">@vOption.Title</span>
+                        <div class="ts-role-desc">@vOption.Description</div>
+                    </span>
+                </div>
+            }
+        </div>
+
+        <div class="ts-switch-row" data-testid="NativeDevSwitch">
+            <Switch @bind-Checked="objIsNativeDev" Id="native-dev" />
+            <div>
+                <Label For="native-dev" Class="ts-switch-label">I develop natively on this machine</Label>
+                <div class="ts-switch-sub">Drops the WSL-bridge checks (mirrored networking, winrun) from the board.</div>
+            </div>
+        </div>
+
+        @* ---- App profile ---- *@
+        <div>
+            <label class="ts-field-label" for="app-select">App profile</label>
+            <div data-testid="SettingsAppSelect">
+                <Select TValue="string" Value="@objApp" ValueChanged="OnAppChanged" DisplayTextSelector="AppLabel" Class="w-full">
+                    <SelectTrigger>
+                        <SelectValue Placeholder="Framework only" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        @foreach (var vApp in RoleCatalog.Apps)
+                        {
+                            <SelectItem Value="@vApp.Value" Text="@vApp.Label" TValue="string">@vApp.Label</SelectItem>
+                        }
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+
+        @* ---- Endpoints ---- *@
+        <div>
+            <label class="ts-field-label">Endpoints</label>
+            <div class="ts-setup-lead" style="margin-top:0;margin-bottom:12px;">
+                Network addresses the checks target — an IP or hostname, never a secret. Leave blank when not used.
+            </div>
+            @foreach (var vEndpoint in KnownEndpoints)
+            {
+                var vValue = objEndpoints[vEndpoint.Name];
+                var vValid = IsValidEndpoint(vValue);
+                <div style="margin-bottom:12px;" data-testid="@($"endpoint-{vEndpoint.Name}")">
+                    <Label For="@($"endpoint-input-{vEndpoint.Name}")" Class="ts-field-label">@vEndpoint.Label</Label>
+                    <Input Id="@($"endpoint-input-{vEndpoint.Name}")" Type="InputType.Text"
+                           Value="@vValue" ValueChanged="@(aVal => OnEndpointChanged(vEndpoint.Name, aVal))"
+                           Placeholder="@vEndpoint.Placeholder" AriaInvalid="@(!vValid)" Class="w-full" />
+                    @if (!vValid)
+                    {
+                        <div class="ts-switch-sub" style="color:var(--ts-fail);margin-top:4px;"
+                             data-testid="@($"endpoint-error-{vEndpoint.Name}")">
+                            Enter a valid IP address or hostname.
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @* ---- Profile details (read-only) ---- *@
+        <div data-testid="SettingsProfileDetails">
+            <label class="ts-field-label">Profile details</label>
+            <Card Class="ts-rep-card">
+                <div class="ts-rep-body">
+                    @if (objProfileError is { } vProfErr)
+                    {
+                        <div data-testid="SettingsProfileError">
+                            <Alert Variant="AlertVariant.Danger" AccentBorder="true">
+                                <AlertTitle>Could not load profile</AlertTitle>
+                                <AlertDescription>@vProfErr</AlertDescription>
+                            </Alert>
+                        </div>
+                    }
+                    else if (objApp == RoleCatalog.FrameworkOnlyValue)
+                    {
+                        <Empty data-testid="SettingsProfileEmpty"
+                               Title="No app profile selected"
+                               Description="Choose an app above to see its declarative requirements.">
+                            <Icon><LucideIcon Name="package-open" Size="40" /></Icon>
+                        </Empty>
+                    }
+                    else if (objResolved is { Count: > 0 } vRows)
+                    {
+                        <div class="ts-tbl-wrap">
+                            <table class="ts-tbl" data-testid="SettingsProfileTable">
+                                <thead>
+                                    <tr><th>Requirement</th><th>Type</th><th>Roles</th><th>Source</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var vResolved in vRows)
+                                    {
+                                        <tr data-testid="@($"profile-req-{vResolved.Requirement.Id}")">
+                                            <td class="ts-chk">@vResolved.Requirement.Id</td>
+                                            <td>@vResolved.Requirement.Type</td>
+                                            <td>@RolesText(vResolved.Requirement.Roles)</td>
+                                            <td>
+                                                @if (vResolved.Source == RequirementSource.Override)
+                                                {
+                                                    <Badge Variant="BadgeVariant.Secondary"
+                                                           data-testid="@($"profile-src-{vResolved.Requirement.Id}")">app-repo override</Badge>
+                                                }
+                                                else
+                                                {
+                                                    <Badge Variant="BadgeVariant.Outline"
+                                                           data-testid="@($"profile-src-{vResolved.Requirement.Id}")">built-in</Badge>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <Empty data-testid="SettingsProfileMissing"
+                               Title="@($"No profile found for \"{objApp}\"")"
+                               Description="No built-in profile and no app-repo override declares this app.">
+                            <Icon><LucideIcon Name="circle-dashed" Size="40" /></Icon>
+                        </Empty>
+                    }
+                </div>
+            </Card>
+        </div>
+
+        @* ---- Settings-file path footer ---- *@
+        <div class="ts-sb-foot" style="padding:0;" data-testid="SettingsFilePath">
+            <LucideIcon Name="file-cog" Size="12" />
+            <span>Settings file: @SettingsStore.SettingsFilePath</span>
+        </div>
+
+        @* ---- Save failure ---- *@
+        @if (objSaveError is { } vErr)
+        {
+            <div data-testid="SettingsSaveError">
+                <Alert Variant="AlertVariant.Danger" AccentBorder="true">
+                    <AlertTitle>Could not save</AlertTitle>
+                    <AlertDescription>@vErr</AlertDescription>
+                </Alert>
+            </div>
+        }
+
+        @* ---- Actions ---- *@
+        <div style="display:flex;gap:8px;">
+            <Button OnClick="SaveAsync" Disabled="@(!CanSave)" data-testid="SettingsSaveButton">
+                @if (objIsSaving)
+                {
+                    <Spinner Size="SpinnerSize.Small" />
+                }
+                else
+                {
+                    <LucideIcon Name="save" Size="16" />
+                }
+                <span>Save</span>
+            </Button>
+            <Button Variant="ButtonVariant.Outline" OnClick="@(() => Nav.NavigateTo("/"))"
+                    Disabled="@objIsSaving" data-testid="SettingsCancelButton">
+                <span>Cancel</span>
+            </Button>
+        </div>
+        <div class="ts-hint">Saved to the local settings file — nothing leaves this machine.</div>
+    </div>
+</main>
+
+@code {
+    private readonly ProfileLoader objLoader = new();
+    private MachineRole objRoles;
+    private bool objIsNativeDev;
+    private string objApp = RoleCatalog.FrameworkOnlyValue;
+    private readonly Dictionary<string, string> objEndpoints = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<ResolvedRequirement>? objResolved;
+    private string? objProfileError;
+    private bool objIsSaving;
+    private string? objSaveError;
+
+    /// <summary>One editable named endpoint the Settings screen renders (label + placeholder).</summary>
+    /// <param name="Name">The endpoint key persisted in <see cref="TrSetupSettings.Endpoints"/> (e.g. <c>MacIp</c>).</param>
+    /// <param name="Label">The human field label.</param>
+    /// <param name="Placeholder">Example address shown when empty.</param>
+    private sealed record EndpointField(string Name, string Label, string Placeholder);
+
+    /// <summary>The known endpoints the UI edits — today only the LAN Mac IP the Bridges checks probe.</summary>
+    private static readonly IReadOnlyList<EndpointField> KnownEndpoints =
+    [
+        new EndpointField("MacIp", "Mac device-host IP", "192.168.1.50")
+    ];
+
+    private bool HasBaseRole => (objRoles & ~MachineRole.NativeDev) != MachineRole.None;
+
+    private bool AllEndpointsValid => KnownEndpoints.All(aField => IsValidEndpoint(objEndpoints[aField.Name]));
+
+    private bool CanSave => HasBaseRole && AllEndpointsValid && !objIsSaving;
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        objRoles = Board.Roles & ~MachineRole.NativeDev;
+        objIsNativeDev = Board.Roles.HasFlag(MachineRole.NativeDev);
+        objApp = Board.SelectedApp ?? RoleCatalog.FrameworkOnlyValue;
+        foreach (var vField in KnownEndpoints)
+        {
+            objEndpoints[vField.Name] = Board.Endpoints.TryGetValue(vField.Name, out var vExisting) ? vExisting : string.Empty;
+        }
+
+        LoadProfile();
+    }
+
+    private static string AppLabel(string aValue)
+        => RoleCatalog.Apps.Where(aApp => aApp.Value == aValue).Select(aApp => aApp.Label).FirstOrDefault() ?? aValue;
+
+    private static string RolesText(MachineRole aRoles)
+        => aRoles == MachineRole.None ? "—" : aRoles.ToString();
+
+    private void ToggleRole(MachineRole aRole) => objRoles ^= aRole;
+
+    private void OnRoleKey(KeyboardEventArgs aArgs, MachineRole aRole)
+    {
+        if (aArgs.Key is "Enter" or " ")
+        {
+            ToggleRole(aRole);
+        }
+    }
+
+    private void OnAppChanged(string? aValue)
+    {
+        objApp = aValue ?? RoleCatalog.FrameworkOnlyValue;
+        LoadProfile();
+    }
+
+    private void OnEndpointChanged(string aName, string? aValue) => objEndpoints[aName] = aValue ?? string.Empty;
+
+    /// <summary>Loads the source-tagged profile details for the selected app (framework-only shows an Empty state).</summary>
+    private void LoadProfile()
+    {
+        objProfileError = null;
+        objResolved = null;
+        if (objApp == RoleCatalog.FrameworkOnlyValue)
+        {
+            return;
+        }
+
+        try
+        {
+            objResolved = objLoader.ResolveWithSources(objApp);
+        }
+        catch (Exception vEx)
+        {
+            objProfileError = vEx.Message;
+        }
+    }
+
+    /// <summary>Whether the value is a valid endpoint address — an IPv4/IPv6 literal or a hostname; blank is allowed (unset).</summary>
+    private static bool IsValidEndpoint(string? aValue)
+    {
+        if (string.IsNullOrWhiteSpace(aValue))
+        {
+            return true;
+        }
+
+        var vTrimmed = aValue.Trim();
+        if (IPAddress.TryParse(vTrimmed, out _))
+        {
+            return true;
+        }
+
+        return vTrimmed.Length <= 253 && Regex.IsMatch(
+            vTrimmed,
+            @"^([a-zA-Z0-9](-?[a-zA-Z0-9])*)(\.[a-zA-Z0-9](-?[a-zA-Z0-9])*)*$");
+    }
+
+    private async Task SaveAsync()
+    {
+        objSaveError = null;
+        objIsSaving = true;
+        try
+        {
+            var vRoles = objRoles | (objIsNativeDev ? MachineRole.NativeDev : MachineRole.None);
+            var vApp = objApp == RoleCatalog.FrameworkOnlyValue ? null : objApp;
+            var vEndpoints = objEndpoints
+                .Where(aPair => !string.IsNullOrWhiteSpace(aPair.Value))
+                .ToDictionary(aPair => aPair.Key, aPair => aPair.Value.Trim(), StringComparer.OrdinalIgnoreCase);
+            await Board.SaveSettingsAsync(vRoles, vApp, vEndpoints);
+            Nav.NavigateTo("/");
+        }
+        catch (Exception vEx)
+        {
+            objSaveError = vEx.Message;
+        }
+        finally
+        {
+            objIsSaving = false;
+        }
+    }
+}

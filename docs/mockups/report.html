@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrSetup — Report</title>
+<style>
+:root{
+  --background:#ffffff;--foreground:#0a0a0a;--card:#ffffff;--muted:#f5f5f5;--muted-foreground:#737373;
+  --primary:#171717;--primary-foreground:#fafafa;--secondary:#f5f5f5;--border:#e5e5e5;--destructive:#dc2626;
+  --ring:#a3a3a3;--radius:0.625rem;--sidebar:#fafafa;--sidebar-border:#e5e5e5;
+  --pass:#16a34a;--warn:#d97706;--fail:#dc2626;--na:#a3a3a3;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i.sm{width:14px;height:14px}
+a{color:inherit}
+
+/* ---------- shell ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{width:256px;flex:none;background:var(--sidebar);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;padding:8px;position:sticky;top:0;height:100vh}
+.sb-head{display:flex;align-items:center;gap:10px;padding:8px;margin-bottom:8px}
+.sb-logo{width:32px;height:32px;flex:none;border-radius:8px;background:var(--primary);color:var(--primary-foreground);display:flex;align-items:center;justify-content:center}
+.sb-title{font-weight:700;font-size:14px;line-height:1.2}
+.sb-sub{font-size:11px;color:var(--muted-foreground);line-height:1.3;white-space:nowrap}
+.sb-label{font-size:11px;font-weight:500;color:var(--muted-foreground);padding:8px 8px 4px}
+.sb-nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.sb-item{display:flex;align-items:center;gap:10px;height:36px;padding:0 8px;border-radius:8px;text-decoration:none;font-size:14px;color:var(--foreground)}
+.sb-item svg{color:var(--muted-foreground)}
+.sb-item:hover{background:#efefef}
+.sb-item.active{background:#e5e5e5;font-weight:500}
+.sb-item.active svg{color:var(--foreground)}
+.sb-foot{padding:10px 8px 6px;font-size:11px;color:var(--muted-foreground);border-top:1px solid var(--sidebar-border);display:flex;align-items:center;gap:6px}
+.sb-foot svg.i{width:12px;height:12px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:20;height:64px;flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
+.page-title{font-size:15px;font-weight:600}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:none;background:transparent;border-radius:8px;color:var(--foreground);cursor:pointer}
+.icon-btn:hover{background:var(--muted)}
+.content{width:100%;max-width:960px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+
+/* ---------- buttons / badges ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 16px;border-radius:calc(var(--radius) - 2px);font-size:14px;font-weight:500;font-family:inherit;border:1px solid transparent;background:transparent;color:var(--foreground);cursor:pointer;white-space:nowrap}
+.btn-outline{background:var(--background);border-color:var(--border);box-shadow:0 1px 2px rgb(0 0 0/.05)}
+.btn-outline:hover{background:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:1px 10px;border-radius:9999px;font-size:12px;font-weight:600;line-height:18px;white-space:nowrap}
+.badge-success{background:#dcfce7;color:#166534}
+.badge-warn{background:#fef3c7;color:#92400e}
+.badge-destructive{background:#fee2e2;color:#b91c1c}
+.badge-outline{background:transparent;border:1px solid var(--border);color:var(--muted-foreground);font-weight:500;font-size:11px}
+
+/* ---------- toolbar ---------- */
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.toolbar .spacer{flex:1}
+.toolbar-note{font-size:12px;color:var(--muted-foreground)}
+
+/* ---------- report card ---------- */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 1px 2px rgb(0 0 0/.05);overflow:hidden}
+.rep-h{padding:24px 28px 20px;border-bottom:1px solid var(--border)}
+.rep-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0}
+.rep-meta{font-size:13px;color:var(--muted-foreground);margin-top:4px}
+.rep-badges{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.rep-body{padding:8px 28px 24px}
+.rep-body h3{font-size:15px;font-weight:600;margin:24px 0 10px}
+
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:calc(var(--radius) - 2px)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:500;color:var(--muted-foreground);text-align:left;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--muted);white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.ev{font-family:var(--mono);font-size:12px;color:var(--muted-foreground);overflow-wrap:anywhere}
+td.chk{font-weight:500;white-space:nowrap}
+.stc{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;white-space:nowrap}
+.stc.pass{color:var(--pass)}
+.stc.warn{color:var(--warn)}
+.stc.fail{color:var(--fail)}
+.col-status{width:84px}
+
+.rep-more{font-size:12.5px;color:var(--muted-foreground);margin-top:16px}
+.rep-foot{padding:14px 28px;border-top:1px solid var(--border);font-size:12px;color:var(--muted-foreground);display:flex;align-items:center;gap:6px}
+
+@media(max-width:900px){
+  .sidebar{display:none}
+  .content{padding:16px}
+  .rep-h,.rep-body{padding-left:16px;padding-right:16px}
+  .rep-foot{padding:12px 16px}
+  td.chk{white-space:normal}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+    <symbol id="ic-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="12" rx="1"/></symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+    <symbol id="ic-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+    <symbol id="ic-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="ic-panel-left" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+    <symbol id="ic-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="ic-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="ic-circle-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+    <symbol id="ic-file-down" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></symbol>
+    <symbol id="ic-file-code" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m10 12-2 2 2 2"/><path d="m14 12 2 2-2 2"/></symbol>
+    <symbol id="ic-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="ic-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+    <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="sb-logo"><svg class="i"><use href="#ic-wrench"/></svg></div>
+      <div>
+        <div class="sb-title">TrSetup</div>
+        <div class="sb-sub">v0.1 — Environment Doctor</div>
+      </div>
+    </div>
+    <div class="sb-label">Navigation</div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="dashboard.html"><svg class="i"><use href="#ic-dashboard"/></svg>Board</a>
+      <a class="sb-item" href="fix-run.html"><svg class="i"><use href="#ic-play"/></svg>Fix all run</a>
+      <a class="sb-item active" href="report.html"><svg class="i"><use href="#ic-file-text"/></svg>Report</a>
+      <a class="sb-item" href="role-picker.html"><svg class="i"><use href="#ic-settings"/></svg>Setup</a>
+    </nav>
+    <div class="sb-foot"><svg class="i"><use href="#ic-monitor"/></svg>Machine: DESKTOP-TR01 (WSL)</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" title="Toggle sidebar"><svg class="i"><use href="#ic-panel-left"/></svg></button>
+      <h1 class="page-title">Report preview</h1>
+    </header>
+
+    <main class="content">
+
+      <!-- toolbar -->
+      <div class="toolbar">
+        <button class="btn btn-outline"><svg class="i"><use href="#ic-file-down"/></svg>Save as .md</button>
+        <button class="btn btn-outline"><svg class="i"><use href="#ic-file-code"/></svg>Save as .html</button>
+        <button class="btn btn-outline"><svg class="i"><use href="#ic-copy"/></svg>Copy markdown</button>
+        <div class="spacer"></div>
+        <span class="toolbar-note">Snapshot of the board at export time — run "Re-check all" first to refresh.</span>
+      </div>
+
+      <!-- report -->
+      <article class="card">
+        <header class="rep-h">
+          <h2 class="rep-title">TrSetup Report — DESKTOP-TR01</h2>
+          <div class="rep-meta">2026-07-05 14:47 · Roles: Device host (Windows) + Agent host (WSL) · App: AppStudio</div>
+          <div class="rep-badges">
+            <span class="badge badge-success">10 ✓ pass</span>
+            <span class="badge badge-warn">2 ⚠ warn</span>
+            <span class="badge badge-destructive">3 ✗ fail</span>
+          </div>
+        </header>
+
+        <div class="rep-body">
+
+          <h3>Framework core</h3>
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr><th class="col-status">Status</th><th>Check</th><th>Evidence</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">.NET SDK 10.0.100</td>
+                  <td class="ev">dotnet --list-sdks → 10.0.100 [/usr/lib/dotnet/sdk]</td>
+                </tr>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">Node.js 22.12.0</td>
+                  <td class="ev">node --version → v22.12.0</td>
+                </tr>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">Playwright + Chromium</td>
+                  <td class="ev">npx playwright --version → 1.49.1 · chromium-1148 present</td>
+                </tr>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">~/bin/winrun bridge</td>
+                  <td class="ev">file present, executable · PATH line in ~/.bashrc</td>
+                </tr>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">git 2.43.0</td>
+                  <td class="ev">git --version → git version 2.43.0</td>
+                </tr>
+                <tr>
+                  <td><span class="stc warn"><svg class="i sm"><use href="#ic-triangle-alert"/></svg>Warn</span></td>
+                  <td class="chk">Mirrored networking probe</td>
+                  <td class="ev">probe to Windows host port 5999 answered in 3.2 s (threshold 1.0 s)</td>
+                </tr>
+                <tr>
+                  <td><span class="stc fail"><svg class="i sm"><use href="#ic-circle-x"/></svg>Fail</span></td>
+                  <td class="chk">Appium mac2 driver</td>
+                  <td class="ev">appium driver list --installed → xcuitest 7.28.3 only, no 'mac2' entry</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>AppStudio profile</h3>
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr><th class="col-status">Status</th><th>Check</th><th>Evidence</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">.NET 10 SDK</td>
+                  <td class="ev">dotnet --list-sdks → 10.0.100</td>
+                </tr>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">dotnet + git on PATH</td>
+                  <td class="ev">which dotnet → /usr/bin/dotnet · which git → /usr/bin/git</td>
+                </tr>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">App Manager API reachable</td>
+                  <td class="ev">GET https://localhost:5101/health → 200 in 95 ms</td>
+                </tr>
+                <tr>
+                  <td><span class="stc pass"><svg class="i sm"><use href="#ic-check-circle"/></svg>Pass</span></td>
+                  <td class="chk">AppManager API key — present (value never shown) <span class="badge badge-outline">presence-only</span></td>
+                  <td class="ev">env-secret non-empty · never stored, displayed or exported</td>
+                </tr>
+                <tr>
+                  <td><span class="stc fail"><svg class="i sm"><use href="#ic-circle-x"/></svg>Fail</span></td>
+                  <td class="chk">MAUI workload</td>
+                  <td class="ev">dotnet workload list → no 'maui' entry</td>
+                </tr>
+                <tr>
+                  <td><span class="stc fail"><svg class="i sm"><use href="#ic-circle-x"/></svg>Fail</span></td>
+                  <td class="chk">GitHub Packages feed</td>
+                  <td class="ev">'techierathore' feed responds 401 Unauthorized (PAT needs read:packages)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="rep-more">+ 2 more groups in the exported file: Bridges (cross-machine) — 1 ✓ 1 ⚠ · Build &amp; run — blocked (2 prerequisites failing).</p>
+
+        </div>
+
+        <footer class="rep-foot">
+          <svg class="i sm"><use href="#ic-shield"/></svg>
+          Generated by TrSetup — safe to paste into a Claude session (no secret values).
+        </footer>
+      </article>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

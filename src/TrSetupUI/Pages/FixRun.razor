@@ -1,0 +1,206 @@
+@page "/fix-run"
+@inherits BoardComponentBase
+
+@* Fix-all run view (REQ-UI-004): ordered step list with per-step status, an explicit inline
+   consent gate before each elevated step, halt-on-decline, and a completion summary. *@
+<PageTitle>TrSetup — Fix all run</PageTitle>
+
+<header class="ts-topbar">
+    <SidebarTrigger />
+    <h1 class="ts-page-title">Fix all run</h1>
+</header>
+
+<main class="ts-content ts-content-fixrun">
+    @if (Board.FixAllSteps.Count == 0 && !Board.IsFixAllRunning && Board.FixAllResult is null)
+    {
+        <div class="ts-empty" data-testid="FixRunEmpty">
+            <LucideIcon Name="circle-check" Size="40" />
+            <div class="ts-empty-title">Nothing to fix — board is green</div>
+            <Button Variant="ButtonVariant.Outline" OnClick="@(() => Nav.NavigateTo("/"))" data-testid="FixRunBackButton">
+                <LucideIcon Name="layout-dashboard" Size="16" />
+                <span>Back to board</span>
+            </Button>
+        </div>
+    }
+    else
+    {
+        <section class="card" data-testid="FixRunHeader">
+            <div class="ts-run-h">
+                <div class="ts-run-h-top">
+                    <span class="ts-run-title">Fixing @Board.FixAllTotalSteps item(s) — dependency order</span>
+                    @if (Board.IsFixAllRunning)
+                    {
+                        <Badge Class="ts-badge-warn">Running</Badge>
+                    }
+                    else if (Board.FixAllResult is { } vDone)
+                    {
+                        <Badge Class="@(vDone.AllGreen ? "ts-badge-pass" : "ts-badge-fail")">@(vDone.AllGreen ? "Complete" : "Halted")</Badge>
+                    }
+                </div>
+                <div class="ts-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Percent">
+                    <span style="width:@Percent%"></span>
+                </div>
+                <div class="ts-run-step-line">
+                    <b>Step @Board.FixAllCurrentStep of @Board.FixAllTotalSteps</b> — @CurrentStepTitle
+                </div>
+            </div>
+        </section>
+
+        @if (!Board.IsFixAllRunning && Board.FixAllResult is { } vResult)
+        {
+            <div data-testid="FixRunSummary">
+                <Alert Variant="@(vResult.AllGreen ? AlertVariant.Success : AlertVariant.Warning)">
+                    <AlertTitle>@(vResult.AllGreen ? "All fixes applied and re-verified green" : "Run halted")</AlertTitle>
+                    <AlertDescription>
+                        @(vResult.HaltReason ?? $"{vResult.Steps.Count(aStep => aStep.Status == FixAllStepStatus.Fixed)} of {vResult.Steps.Count} fixed.")
+                    </AlertDescription>
+                </Alert>
+            </div>
+        }
+
+        <section class="card" data-testid="FixRunSteps">
+            <div class="ts-steps">
+                @foreach (var vStep in Board.FixAllSteps)
+                {
+                    <div class="ts-step @StepClass(vStep)" data-testid="@($"fix-step-{vStep.Check.Id}")">
+                        <span class="ts-step-num">@vStep.Number/@Board.FixAllTotalSteps</span>
+                        <span class="ts-step-ic">
+                            @if (vStep.IsActive)
+                            {
+                                <Spinner Size="SpinnerSize.Small" />
+                            }
+                            else
+                            {
+                                <LucideIcon Name="@StepIcon(vStep)" Size="18" />
+                            }
+                        </span>
+                        <div class="ts-step-body">
+                            <div class="ts-step-title">@vStep.Check.Title</div>
+
+                            @if (vStep.IsActive && Board.Consent.PendingCheck is { } vPending && vPending.Id == vStep.Check.Id)
+                            {
+                                <div class="ts-consent" data-testid="@($"consent-{vStep.Check.Id}")">
+                                    <div class="ts-consent-h"><LucideIcon Name="shield" Size="16" />This step needs your approval</div>
+                                    <p class="ts-consent-p">The exact command below runs only after you approve. Nothing else is executed.</p>
+                                    <pre class="ts-consent-pre">@(vPending.FixPreview ?? "(no preview)")</pre>
+                                    <div class="ts-consent-actions">
+                                        <Button OnClick="Approve" data-testid="@($"approve-{vStep.Check.Id}")">
+                                            <LucideIcon Name="play" Size="16" />
+                                            <span>Approve &amp; run</span>
+                                        </Button>
+                                        <Button Variant="ButtonVariant.Outline" OnClick="DeclineAndStop" data-testid="@($"decline-{vStep.Check.Id}")">Decline &amp; stop</Button>
+                                    </div>
+                                </div>
+                            }
+                            else if (vStep.IsActive)
+                            {
+                                <div class="ts-step-sub">running…</div>
+                            }
+
+                            @if (vStep.Result?.PipelineResult is { } vPipe && !string.IsNullOrWhiteSpace(vPipe.RawOutput))
+                            {
+                                <pre class="ts-lastrun-pre" data-testid="@($"output-{vStep.Check.Id}")">@vPipe.RawOutput</pre>
+                            }
+                        </div>
+                        @if (vStep.Result is { } vStepResult && !vStep.IsActive)
+                        {
+                            <span class="ts-step-result">@vStepResult.Reason</span>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+
+        <div class="ts-run-foot">
+            @if (Board.IsFixAllRunning)
+            {
+                <Button Variant="ButtonVariant.Outline" OnClick="Stop" data-testid="StopRunButton">
+                    <LucideIcon Name="octagon-x" Size="16" />
+                    <span>Stop run</span>
+                </Button>
+            }
+            else
+            {
+                <Button Variant="ButtonVariant.Outline" OnClick="@(() => Nav.NavigateTo("/"))" data-testid="FixRunDoneButton">
+                    <LucideIcon Name="layout-dashboard" Size="16" />
+                    <span>Back to board</span>
+                </Button>
+            }
+        </div>
+    }
+</main>
+
+@code {
+    private bool objStarted;
+
+    private int Percent
+    {
+        get
+        {
+            var vTotal = Board.FixAllTotalSteps;
+            if (vTotal == 0)
+            {
+                return 0;
+            }
+
+            var vDone = Board.FixAllSteps.Count(aStep => aStep.Status is not null);
+            return (int)Math.Round(vDone * 100.0 / vTotal);
+        }
+    }
+
+    private string CurrentStepTitle
+    {
+        get
+        {
+            var vActive = Board.FixAllSteps.FirstOrDefault(aStep => aStep.IsActive)
+                ?? Board.FixAllSteps.FirstOrDefault(aStep => aStep.Number == Board.FixAllCurrentStep);
+            return vActive?.Check.Title ?? "—";
+        }
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || objStarted)
+        {
+            return;
+        }
+
+        if (!Board.IsFixAllRunning && Board.FixAllResult is null && Board.FixAllSteps.Count == 0 && Board.HasPendingFixQueue)
+        {
+            objStarted = true;
+            await Board.RunFixAllAsync();
+        }
+    }
+
+    private void Approve() => Board.Consent.Approve();
+
+    private void DeclineAndStop() => Board.RequestStopFixAll();
+
+    private void Stop() => Board.RequestStopFixAll();
+
+    private static string StepClass(FixAllStepView aStep)
+    {
+        if (aStep.IsActive)
+        {
+            return "ts-step-active";
+        }
+
+        return aStep.Status switch
+        {
+            FixAllStepStatus.Fixed or FixAllStepStatus.ManualOnly => "ts-step-done",
+            FixAllStepStatus.Failed => "ts-step-failed",
+            FixAllStepStatus.Declined => "ts-step-declined",
+            null => "ts-step-pending",
+            _ => "ts-step-pending"
+        };
+    }
+
+    private static string StepIcon(FixAllStepView aStep) => aStep.Status switch
+    {
+        FixAllStepStatus.Fixed or FixAllStepStatus.ManualOnly => "circle-check",
+        FixAllStepStatus.Failed => "circle-x",
+        FixAllStepStatus.Declined => "octagon-x",
+        _ => "circle-dashed"
+    };
+}

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TrSetupUI</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.*" />
+    <!-- 1.0.7 = newest version restorable: the GitHub Packages feed download endpoint currently
+         401s (token scope), so restore comes from the local NuGet cache (max cached: 1.0.7). -->
+    <PackageReference Include="TrBlazeUI.Components" Version="1.0.7" />
+    <PackageReference Include="TrBlazeUI.Icons.Lucide" Version="1.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TrSetup.Core\TrSetup.Core.csproj" />
+  </ItemGroup>
+
+</Project>

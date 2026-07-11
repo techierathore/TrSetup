@@ -1,0 +1,257 @@
+@* Board dashboard body (REQ-UI-001): sticky header with role + app selectors and global
+   actions, then one card per check group with status counts, per-group "Fix all", and rows. *@
+@inject BoardState Board
+@inject NavigationManager Nav
+
+<header class="ts-topbar">
+    <SidebarTrigger />
+    <h1 class="ts-page-title">Environment board</h1>
+    <div class="ts-topbar-spacer"></div>
+
+    <DropdownMenu>
+        <DropdownMenuTrigger>
+            <Button Variant="ButtonVariant.Outline" data-testid="RolesSelector">
+                @if (SelectedRoleOptions.Count == 0)
+                {
+                    <span class="ts-sel-label">Select roles</span>
+                }
+                else
+                {
+                    @foreach (var vOption in SelectedRoleOptions)
+                    {
+                        <span class="ts-chip"><LucideIcon Name="@vOption.Icon" Size="12" />@vOption.Title</span>
+                    }
+                }
+                <LucideIcon Name="chevron-down" Size="14" />
+            </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+            <DropdownMenuLabel>Machine roles</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            @foreach (var vOption in RoleCatalog.Roles)
+            {
+                <DropdownMenuItem CloseOnSelect="false"
+                                  OnClick="@(() => ToggleRoleAsync(vOption.Role))">
+                    <span data-testid="@($"role-option-{vOption.Key}")" style="width:20px;display:inline-flex">
+                        @if (Board.Roles.HasFlag(vOption.Role))
+                        {
+                            <LucideIcon Name="check" Size="14" />
+                        }
+                    </span>
+                    <LucideIcon Name="@vOption.Icon" Size="14" />
+                    <span class="ml-2">@vOption.Title</span>
+                </DropdownMenuItem>
+            }
+        </DropdownMenuContent>
+    </DropdownMenu>
+
+    <div class="ts-selector" data-testid="AppSelector">
+        <span class="ts-sel-label">App</span>
+        <Select TValue="string" Value="@AppValue" ValueChanged="OnAppChangedAsync"
+                DisplayTextSelector="AppLabel" Class="w-[160px]">
+            <SelectTrigger>
+                <SelectValue Placeholder="Framework only" />
+            </SelectTrigger>
+            <SelectContent>
+                @foreach (var vApp in RoleCatalog.Apps)
+                {
+                    <SelectItem Value="@vApp.Value" Text="@vApp.Label" TValue="string">@vApp.Label</SelectItem>
+                }
+            </SelectContent>
+        </Select>
+    </div>
+
+    <Button Variant="ButtonVariant.Outline" OnClick="RecheckAll" Disabled="@Board.IsSweeping" data-testid="RecheckAllButton">
+        @if (Board.IsSweeping)
+        {
+            <Spinner Size="SpinnerSize.Small" />
+        }
+        else
+        {
+            <LucideIcon Name="refresh-cw" Size="16" />
+        }
+        <span>Re-check all</span>
+    </Button>
+    <Button Variant="ButtonVariant.Outline" OnClick="@(() => Nav.NavigateTo("/report"))" data-testid="ExportReportButton">
+        <LucideIcon Name="file-down" Size="16" />
+        <span>Export report</span>
+    </Button>
+</header>
+
+<main class="ts-content">
+    @if (Board.SweepError is { } vError)
+    {
+        <div data-testid="SweepError">
+            <Alert Variant="AlertVariant.Danger" AccentBorder="true">
+                <AlertTitle>Enumeration failed</AlertTitle>
+                <AlertDescription>@vError</AlertDescription>
+            </Alert>
+        </div>
+    }
+
+    @if (VisibleGroups.Count == 0)
+    {
+        <div class="ts-empty" data-testid="BoardEmpty">
+            <LucideIcon Name="circle-dashed" Size="40" />
+            <div class="ts-empty-title">No checks for this role / app selection</div>
+            <div>Pick at least one role in the header, or open Setup.</div>
+        </div>
+    }
+
+    @foreach (var vGroup in VisibleGroups)
+    {
+        var vFixable = Board.FixableRows(vGroup).Count;
+        <section class="card ts-group-card" data-testid="@($"board-group-{Slug(vGroup.Name)}")">
+            <div class="ts-card-h">
+                <span class="ts-card-title">@vGroup.Name</span>
+                <Badge Class="ts-badge-pass" data-testid="@($"count-pass-{Slug(vGroup.Name)}")">@vGroup.PassCount ✓</Badge>
+                @if (vGroup.WarnCount > 0)
+                {
+                    <Badge Class="ts-badge-warn">@vGroup.WarnCount ⚠</Badge>
+                }
+                @if (vGroup.FailCount > 0)
+                {
+                    <Badge Class="ts-badge-fail">@vGroup.FailCount ✗</Badge>
+                }
+                <div class="ts-grow"></div>
+                @if (vFixable > 0)
+                {
+                    <Button Variant="ButtonVariant.Outline" Size="ButtonSize.Small"
+                            OnClick="@(() => FixAllGroup(vGroup))"
+                            data-testid="@($"fix-all-{Slug(vGroup.Name)}")">
+                        <LucideIcon Name="wrench" Size="14" />
+                        <span>Fix all</span>
+                    </Button>
+                }
+            </div>
+            <div class="ts-rows">
+                @foreach (var vRow in OrderRows(vGroup))
+                {
+                    var vChecking = Board.IsChecking(vRow.Check.Id);
+                    var vProminent = vChecking || vRow.Status is CheckStatus.Fail or CheckStatus.Warn;
+                    <div class="ts-row @(vProminent ? "" : "ts-row-compact")" data-testid="@($"board-row-{vRow.Check.Id}")">
+                        <StatusLabel Status="vRow.Status" IsChecking="vChecking" TestId="@($"status-{vRow.Check.Id}")" />
+                        <div class="ts-row-body">
+                            <button class="ts-row-title" @onclick="@(() => OpenDetail(vRow))" data-testid="@($"row-title-{vRow.Check.Id}")">@vRow.Check.Title</button>
+                            @if (vProminent && !string.IsNullOrWhiteSpace(vRow.Evidence))
+                            {
+                                <div class="ts-row-ev">@vRow.Evidence</div>
+                            }
+                        </div>
+                        @if (!vProminent && !string.IsNullOrWhiteSpace(vRow.Evidence))
+                        {
+                            <span class="ts-row-ev-side">@vRow.Evidence</span>
+                        }
+                        <div class="ts-row-actions">
+                            @if (vProminent)
+                            {
+                                <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Small"
+                                        OnClick="@(() => OpenDetail(vRow))" data-testid="@($"preview-{vRow.Check.Id}")">
+                                    <LucideIcon Name="eye" Size="14" />
+                                    <span>Preview</span>
+                                </Button>
+                                @if (vRow.Check.IsManualOnly)
+                                {
+                                    <Button Variant="ButtonVariant.Outline" Size="ButtonSize.Small"
+                                            OnClick="@(() => OpenGuide(vRow))" data-testid="@($"guide-{vRow.Check.Id}")">
+                                        <LucideIcon Name="external-link" Size="14" />
+                                        <span>Open guide</span>
+                                    </Button>
+                                }
+                                else
+                                {
+                                    <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Small"
+                                            OnClick="@(() => FixRowAsync(vRow))"
+                                            Disabled="@(Board.IsFixing(vRow.Check.Id) || Board.IsAnyFixRunning)"
+                                            data-testid="@($"fix-{vRow.Check.Id}")">
+                                        <LucideIcon Name="wrench" Size="14" />
+                                        <span>Fix</span>
+                                    </Button>
+                                }
+                            }
+                            <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSmall"
+                                    OnClick="@(() => RecheckRowAsync(vRow))"
+                                    Disabled="@vChecking"
+                                    AriaLabel="Re-check this item"
+                                    data-testid="@($"recheck-{vRow.Check.Id}")">
+                                <LucideIcon Name="refresh-cw" Size="14" />
+                            </Button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</main>
+
+@code {
+    private IReadOnlyList<RoleOption> SelectedRoleOptions => RoleCatalog.Expand(Board.Roles);
+
+    private string AppValue => Board.SelectedApp ?? RoleCatalog.FrameworkOnlyValue;
+
+    private static string AppLabel(string aValue)
+        => RoleCatalog.Apps.Where(aApp => aApp.Value == aValue).Select(aApp => aApp.Label).FirstOrDefault() ?? aValue;
+
+    private List<BoardGroup> VisibleGroups =>
+        Board.Board?.Groups.Where(aGroup => aGroup.Rows.Any(aRow => aRow.IsInScope)).ToList()
+        ?? new List<BoardGroup>();
+
+    private static IEnumerable<BoardRow> OrderRows(BoardGroup aGroup)
+        => aGroup.Rows
+            .Where(aRow => aRow.IsInScope)
+            .OrderBy(aRow => aRow.Status switch
+            {
+                CheckStatus.Fail => 0,
+                CheckStatus.Warn => 1,
+                null => 2,
+                CheckStatus.Pass => 3,
+                _ => 4
+            });
+
+    private async Task ToggleRoleAsync(MachineRole aRole)
+    {
+        var vNew = Board.Roles ^ aRole;
+        if ((vNew & ~MachineRole.NativeDev) == MachineRole.None)
+        {
+            return;
+        }
+
+        await Board.RescopeAsync(vNew, Board.SelectedApp, aPersist: true);
+    }
+
+    private async Task OnAppChangedAsync(string? aValue)
+    {
+        var vApp = aValue == RoleCatalog.FrameworkOnlyValue ? null : aValue;
+        await Board.RescopeAsync(Board.Roles, vApp, aPersist: true);
+    }
+
+    private void RecheckAll() => Board.RecheckAll();
+
+    private async Task RecheckRowAsync(BoardRow aRow) => await Board.RecheckRowAsync(aRow);
+
+    private async Task FixRowAsync(BoardRow aRow) => await Board.FixRowAsync(aRow);
+
+    private void FixAllGroup(BoardGroup aGroup)
+    {
+        Board.QueueFixAll(aGroup);
+        Nav.NavigateTo("/fix-run");
+    }
+
+    private void OpenDetail(BoardRow aRow) => Nav.NavigateTo($"/check/{aRow.Check.Id}");
+
+    private void OpenGuide(BoardRow aRow)
+    {
+        var vLink = aRow.Check.Explain.DocLink;
+        if (!string.IsNullOrWhiteSpace(vLink) && (vLink.StartsWith("http", StringComparison.OrdinalIgnoreCase)))
+        {
+            Nav.NavigateTo(vLink, forceLoad: true);
+            return;
+        }
+
+        Nav.NavigateTo($"/check/{aRow.Check.Id}");
+    }
+
+    private static string Slug(string aText)
+        => new string(aText.ToLowerInvariant().Select(aChar => char.IsLetterOrDigit(aChar) ? aChar : '-').ToArray())
+            .Trim('-');
+}

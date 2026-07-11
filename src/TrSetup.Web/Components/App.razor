@@ -1,0 +1,21 @@
+@* Host document for the Blazor Server head — renders the TrSetupUI RCL router. *@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>TrSetup</title>
+    <link rel="stylesheet" href="_content/TrSetupUI/css/theme.css" />
+    <link rel="stylesheet" href="_content/TrBlazeUI.Components/trblazeui.css" />
+    <link rel="stylesheet" href="_content/TrSetupUI/css/trsetup.css" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,7 @@
+{
+  "Roles": "AgentHostWsl, DeviceHostWindows, DeviceHostMac, AppRunnerMac",
+  "SelectedApp": "TrStudio",
+  "Endpoints": {
+    "MacIp": "192.168.1.50"
+  }
+}

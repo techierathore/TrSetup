@@ -1,0 +1,59 @@
+@* Status as icon + text (never color alone — REQ-NFR-003). Used on the board, report and detail. *@
+
+<span class="@CssClass" data-testid="@TestId">
+    @if (IsChecking)
+    {
+        <Spinner Size="SpinnerSize.Small" />
+        <span>Checking</span>
+    }
+    else
+    {
+        <LucideIcon Name="@IconName" Size="@IconSize" />
+        <span>@Word</span>
+    }
+</span>
+
+@code {
+    /// <summary>The status to render, or <c>null</c> when not yet detected.</summary>
+    [Parameter]
+    public CheckStatus? Status { get; set; }
+
+    /// <summary>Whether a probe is in flight (shows the spinner instead of a status glyph).</summary>
+    [Parameter]
+    public bool IsChecking { get; set; }
+
+    /// <summary>Icon pixel size (smaller in dense report tables).</summary>
+    [Parameter]
+    public int IconSize { get; set; } = 16;
+
+    /// <summary>Optional stable test id for the status element.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+
+    private string CssClass => "ts-st " + (IsChecking ? "ts-st-checking" : Status switch
+    {
+        CheckStatus.Pass => "ts-st-pass",
+        CheckStatus.Warn => "ts-st-warn",
+        CheckStatus.Fail => "ts-st-fail",
+        CheckStatus.NotApplicable => "ts-st-na",
+        _ => "ts-st-checking"
+    });
+
+    private string IconName => Status switch
+    {
+        CheckStatus.Pass => "circle-check",
+        CheckStatus.Warn => "triangle-alert",
+        CheckStatus.Fail => "circle-x",
+        CheckStatus.NotApplicable => "circle-dashed",
+        _ => "circle-dashed"
+    };
+
+    private string Word => Status switch
+    {
+        CheckStatus.Pass => "Pass",
+        CheckStatus.Warn => "Warn",
+        CheckStatus.Fail => "Fail",
+        CheckStatus.NotApplicable => "N/A",
+        _ => "Pending"
+    };
+}

@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TrSetup — UI Design Spec (Mockups)</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TrSetup — UI Design Spec (Mockups)</h1>
+    <div class="subtitle">Last rendered: 2026-07-09</div>
+
+    <blockquote>
+      <p><strong>What this is.</strong> The approved visual design for TrSetup, produced at day-1 (greenfield) before any UI is built. Each screen has a <strong>rendered mockup</strong> (<code>docs/mockups/{screen}.html</code>, styled to look like TrBlazeUI) and a <strong>component map</strong> that ties every region to a real <strong>TrBlazeUI control</strong>, so the build (<code>/trblazeui</code>) reproduces it 1:1 and the verifier's visual-truth gate (<code>verify-phase.md §4b</code>) can diff the live screen against it. This is a HUMAN document → rendered to HTML. The owner APPROVES it (alongside the BRD + Architecture) before build.</p>
+    </blockquote>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#how-to-use">How to use</a></li>
+        <li><a href="#design-system-trblazeui">Design system (TrBlazeUI)</a></li>
+        <li><a href="#screens">Screens</a>
+          <ul>
+            <li><a href="#screen-board-dashboard">Screen: Board dashboard (<code>/</code>)</a></li>
+            <li><a href="#screen-check-detail-sheet-check-id">Screen: Check detail sheet (<code>/check/{id}</code>)</a></li>
+            <li><a href="#screen-first-run-role-picker-setup">Screen: First-run role picker (<code>/setup</code>)</a></li>
+            <li><a href="#screen-settings-configuration-settings">Screen: Settings / Configuration (<code>/settings</code>)</a></li>
+            <li><a href="#screen-fix-all-run-view-fix-run">Screen: Fix-all run view (<code>/fix-run</code>)</a></li>
+            <li><a href="#screen-report-preview-report">Screen: Report preview (<code>/report</code>)</a></li>
+          </ul>
+        </li>
+        <li><a href="#tui-spectre-console-not-a-trblazeui-screen">TUI (Spectre.Console) — not a TrBlazeUI screen</a></li>
+      </ol>
+    </div>
+
+    <h2 id="how-to-use">How to use<a class="anchor-link" href="#how-to-use">#</a></h2>
+
+    <ul>
+      <li>Every screen below links to its rendered mockup in <code>docs/mockups/</code>. Open those <code>.html</code> files in a browser to see the intended layout.</li>
+      <li>The <strong>Component map</strong> is the build contract: <code>region → TrBlazeUI control</code>. Only controls that actually exist in the TrBlazeUI library are used (catalog read first: <code>/mnt/c/3AIGenCode/TrBlazeUI/docs/TrBlazeUI-AI-Reference.md</code>). No library gaps were found for these screens — <code>docs/TrSetup-TrBlazeUI-Feedback.md</code> not needed at design time.</li>
+      <li>To change a screen after approval: run <code>*mockups TrSetup --update</code> (or <code>*amend-docs</code> for a requirement change that adds screens).</li>
+    </ul>
+
+    <h2 id="design-system-trblazeui">Design system (TrBlazeUI)<a class="anchor-link" href="#design-system-trblazeui">#</a></h2>
+
+    <ul>
+      <li><strong>Source:</strong> TrBlazeUI component library (.NET 10, Tailwind CSS v4, shadcn/ui design; OKLCH token theme). Mockups replicate its design language — spacing, radius (<code>--radius: 0.625rem</code>), semantic color tokens, <code>Inter</code>/system sans typography — so they are replicable in Blazor 1:1.</li>
+      <li><strong>Layout shell:</strong> <code>SidebarProvider</code> → <code>Sidebar</code> (collapsible; header logo + app name; nav: Board, Fix all, Report, Setup) + <code>SidebarInset</code> (sticky header with <code>SidebarTrigger</code>, role + app selectors; scrollable content <code>p-6</code>). Same shell on every screen.</li>
+      <li><strong>Theme:</strong> light + dark (<code>.dark</code> class); mockups default light with the shadcn neutral palette.</li>
+      <li><strong>Controls inventory used:</strong> <code>SidebarProvider/Sidebar/SidebarMenu*/SidebarInset</code>, <code>Card/CardHeader/CardTitle/CardDescription/CardContent/CardFooter</code>, <code>Badge</code>, <code>Button</code> (Default/Outline/Ghost/Destructive/Icon), <code>Select</code>, <code>MultiSelect</code>, <code>Checkbox</code>, <code>Collapsible</code>, <code>Sheet</code>, <code>Separator</code>, <code>Alert</code>, <code>Progress</code>, <code>Spinner</code>, <code>Skeleton</code>, <code>ScrollArea</code>, <code>Tooltip</code>, <code>Empty</code>, <code>Item/ItemGroup</code>, <code>Kbd</code>, <code>AlertDialog</code> (consent), <code>ToastProvider</code>, <code>LucideIcon</code> (status + actions), <code>Tabs</code> (report MD/HTML preview).</li>
+      <li><strong>Status vocabulary (used on every screen; icon + text, never color alone — REQ-NFR-003):</strong> ✓ Pass = green <code>circle-check</code>, ⚠ Warn = amber <code>triangle-alert</code>, ✗ Fail = red <code>circle-x</code>, ○ N/A = muted <code>circle-dashed</code>, ⟳ Checking = <code>Spinner</code>.</li>
+    </ul>
+
+    <h2 id="screens">Screens<a class="anchor-link" href="#screens">#</a></h2>
+
+    <h3 id="screen-board-dashboard">Screen: Board dashboard<a class="anchor-link" href="#screen-board-dashboard">#</a></h3>
+
+    <p><strong>Mockup:</strong> <a href="./mockups/dashboard.html">docs/mockups/dashboard.html</a> · <strong>Role(s):</strong> all · <strong>BRD:</strong> BRD-9, BRD-10, BRD-12, BRD-13 · <strong>REQ:</strong> REQ-UI-001</p>
+
+    <p><strong>Layout (one line):</strong> sidebar shell; sticky header (sidebar trigger · title · roles MultiSelect · app Select · Re-check all · Export); main = one Card per check group, each Card holding status-count badges + Fix all, and one row per check.</p>
+
+    <p><strong>Component map:</strong></p>
+
+    <table>
+      <thead>
+        <tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>App shell</td><td><code>SidebarProvider</code> + <code>Sidebar</code> (collapsible)</td><td>logo, nav (Board active, Fix all, Report, Setup), version footer</td><td>collapsed → icon rail with <code>Tooltip</code></td></tr>
+        <tr><td>Header</td><td><code>SidebarInset</code> header + <code>SidebarTrigger</code></td><td>page title "Environment board"</td><td>—</td></tr>
+        <tr><td>Roles selector</td><td><code>MultiSelect</code></td><td>machine roles (multi — e.g. "Device host (Mac) + App runner")</td><td>at least one required</td></tr>
+        <tr><td>App selector</td><td><code>Select</code></td><td>selected app profile (Framework only / AppStudio / TrStudio / …)</td><td>—</td></tr>
+        <tr><td>Global actions</td><td><code>Button</code> (Outline) ×2</td><td>"Re-check all" (<code>refresh-cw</code>), "Export report" (<code>file-down</code>)</td><td>Re-check shows <code>Spinner</code> while sweeping</td></tr>
+        <tr><td>Check group</td><td><code>Card</code> per group (Framework core / Bridges / AppStudio profile / Build &amp; run)</td><td><code>CardTitle</code> + count <code>Badge</code>s (<code>5 ✓</code> secondary, <code>1 ⚠</code> warn, <code>2 ✗</code> destructive) + "Fix all" <code>Button</code></td><td>group with 0 ✗/⚠ shows subdued all-green row</td></tr>
+        <tr><td>Check row</td><td><code>Item</code> inside <code>ItemGroup</code></td><td>status icon+word (<code>LucideIcon</code> + text), check title, one-line evidence (<code>TypographyMuted</code>), row actions</td><td>Pass rows collapsed to compact line; Fail/Warn rows prominent</td></tr>
+        <tr><td>Row actions</td><td><code>Button</code> (Ghost, Small): "Preview", "Fix"; manual-only → "Open guide" (Outline)</td><td>wired per check <code>FixAsync == null</code></td><td>Fix disabled while a fix is running</td></tr>
+        <tr><td>Build &amp; run group</td><td><code>Card</code> with single action <code>Button</code></td><td>"Build AppStudio for Mac (Catalyst)"</td><td>disabled + <code>Tooltip</code> reason until prerequisites green</td></tr>
+        <tr><td>Empty state</td><td><code>Empty</code></td><td>"No checks for this role/app selection"</td><td>—</td></tr>
+        <tr><td>Toasts</td><td><code>ToastProvider</code></td><td>fix results ("MAUI workload installed — re-check green")</td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Notes / interactions:</strong> row click opens the Check detail <code>Sheet</code> (screen 2); roles/app change re-runs enumeration (no reload); group "Fix all" and global fix actions navigate to <code>/fix-run</code> when more than one fix queues. At mobile width the header selectors stack and rows wrap actions below the title.</p>
+
+    <p><strong>Empty / loading / error:</strong> initial sweep renders rows with <code>Skeleton</code> lines replaced as detects stream in; probe timeout shows ⚠ with "timed out after 5 s" evidence; enumeration failure shows <code>Alert</code> (Danger) with the engine error.</p>
+
+    <h3 id="screen-check-detail-sheet-check-id">Screen: Check detail sheet (<code>/check/{id}</code>)<a class="anchor-link" href="#screen-check-detail-sheet-check-id">#</a></h3>
+
+    <p><strong>Mockup:</strong> <a href="./mockups/check-detail.html">docs/mockups/check-detail.html</a> · <strong>Role(s):</strong> all · <strong>BRD:</strong> BRD-11 · <strong>REQ:</strong> REQ-UI-002</p>
+
+    <p><strong>Layout (one line):</strong> board dashboard dimmed beneath a right-side <code>Sheet</code> (~480px) with title/status header and four stacked sections: Explain · Detect evidence · Fix preview · Last run output.</p>
+
+    <p><strong>Component map:</strong></p>
+
+    <table>
+      <thead>
+        <tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Container</td><td><code>Sheet</code> (Side=Right)</td><td>check title + status <code>Badge</code> in <code>SheetHeader</code></td><td>Esc / outside click closes</td></tr>
+        <tr><td>Explain</td><td><code>SheetDescription</code> + prose block</td><td>what it is, why it's needed, link to WORKFLOW § anchor / guide (<code>Button</code> Variant=Link, <code>external-link</code> icon)</td><td>—</td></tr>
+        <tr><td>Detect evidence</td><td><code>Card</code> (muted)</td><td>evidence text (e.g. <code>dotnet --list-sdks</code> output line) + detected-at timestamp</td><td>empty → "not yet detected"</td></tr>
+        <tr><td>Fix preview</td><td>code block (<code>pre</code> in <code>ScrollArea</code>) + copy <code>Button</code> (Ghost, <code>copy</code> icon)</td><td>the literal command(s)/download URLs Fix will run</td><td>manual-only → <code>Alert</code> (Info): "manual step — see guide"</td></tr>
+        <tr><td>Last run output</td><td><code>Collapsible</code> with dark <code>pre</code> in <code>ScrollArea</code></td><td>exact command line, stdout/stderr, exit code <code>Badge</code></td><td>never run → <code>TypographyMuted</code> "no runs yet"</td></tr>
+        <tr><td>Footer actions</td><td><code>SheetFooter</code>: <code>Button</code> "Fix" (Default), "Re-check" (Outline), "Close" (Ghost)</td><td>—</td><td>Fix hidden for manual-only</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Notes / interactions:</strong> deep link <code>/check/{id}</code> opens the same sheet over the board; copy button toasts "copied".</p>
+
+    <p><strong>Empty / loading / error:</strong> while re-checking, status badge swaps to <code>Spinner</code>; a failed fix keeps the sheet open and scrolls to Last run output with exit code highlighted.</p>
+
+    <h3 id="screen-first-run-role-picker-setup">Screen: First-run role picker (<code>/setup</code>)<a class="anchor-link" href="#screen-first-run-role-picker-setup">#</a></h3>
+
+    <p><strong>Mockup:</strong> <a href="./mockups/role-picker.html">docs/mockups/role-picker.html</a> · <strong>Role(s):</strong> all (first run; reachable later from sidebar "Setup") · <strong>BRD:</strong> BRD-6, BRD-7, BRD-8 · <strong>REQ:</strong> REQ-UI-003</p>
+
+    <p><strong>Layout (one line):</strong> no data yet, so a centered single column (max-w-2xl): welcome header, four selectable role cards (checkbox + icon + one-line description), a native-dev switch, default-app Select, Continue button.</p>
+
+    <p><strong>Component map:</strong></p>
+
+    <table>
+      <thead>
+        <tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Page frame</td><td>same sidebar shell (nav present, Setup active)</td><td>—</td><td>first run: sidebar collapsed</td></tr>
+        <tr><td>Welcome</td><td><code>TypographyH2</code> + <code>TypographyMuted</code></td><td>"Which roles does this machine play?" + explainer</td><td>—</td></tr>
+        <tr><td>Role cards</td><td>4× <code>Card</code> each wrapping a <code>Checkbox</code> + <code>LucideIcon</code> + title + one-liner (from BRD §5 table)</td><td>Agent host WSL (<code>terminal</code>), Device host Windows (<code>monitor</code>), Device host Mac (<code>laptop</code>), App runner Mac (<code>rocket</code>)</td><td>selected card gets primary border/ring; multi-select allowed</td></tr>
+        <tr><td>Native-dev variant</td><td><code>Switch</code> + <code>Label</code></td><td>"I develop natively on this machine (drop WSL-bridge checks)"</td><td>—</td></tr>
+        <tr><td>Default app</td><td><code>Select</code></td><td>Framework only / AppStudio / TrStudio</td><td>—</td></tr>
+        <tr><td>Continue</td><td><code>Button</code> (Default, full-width) "Save &amp; scan this machine"</td><td>persists settings (REQ-FN-005) → board sweep</td><td>disabled until ≥1 role ticked</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Notes / interactions:</strong> shown automatically when no settings file exists; later visits show current selections pre-ticked with "Save" instead.</p>
+
+    <p><strong>Empty / loading / error:</strong> save failure → <code>Alert</code> (Danger) above Continue with the file error.</p>
+
+    <h3 id="screen-settings-configuration-settings">Screen: Settings / Configuration (<code>/settings</code>)<a class="anchor-link" href="#screen-settings-configuration-settings">#</a></h3>
+
+    <p><em>Added 2026-07-09.</em> <strong>Mockup:</strong> none separate — extend <a href="./mockups/role-picker.html">docs/mockups/role-picker.html</a> patterns · <strong>Role(s):</strong> all (reachable from the board header, beside the role/app selectors) · <strong>BRD:</strong> BRD-56 · <strong>REQ:</strong> REQ-UI-006 (Planned, Phase 6)</p>
+
+    <p><strong>Purpose:</strong> the post-CLI configuration surface. The withdrawn CLI owned endpoint editing (<code>--mac-ip</code>, <code>trsetup config</code>), the settings-file path display, and profile inspection; the Setup screen (REQ-UI-003) covers roles + app only. This screen puts the full config surface in the MAUI app: roles, selected app, named endpoint values (<code>TrSetupSettings.Endpoints</code> — today the LAN Mac IP the Bridges probes target), the settings-file path, and read-only profile details for the selected app.</p>
+
+    <p><strong>Layout (one line):</strong> same sidebar shell; header (title + back-to-board); stacked regions — role cards · app Select · Endpoints inputs · read-only Profile details table · settings-file-path footer line · Save/Cancel.</p>
+
+    <p><strong>Component map:</strong></p>
+
+    <table>
+      <thead>
+        <tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Header</td><td><code>TypographyH2</code> + <code>Button</code> (Ghost, <code>arrow-left</code>) "Back to board"</td><td>page title "Settings"</td><td>—</td></tr>
+        <tr><td>Roles</td><td>4× <code>Card</code> each wrapping a <code>Checkbox</code> + <code>LucideIcon</code> + title + one-liner, plus the native-dev <code>Switch</code> — same role-card pattern as <code>/setup</code> (REQ-UI-003)</td><td>current roles pre-ticked</td><td>at least one role required</td></tr>
+        <tr><td>App profile</td><td><code>Select</code></td><td>selected app (Framework only / AppStudio / TrStudio)</td><td>change refreshes the Profile details region</td></tr>
+        <tr><td>Endpoints</td><td>one labelled text <code>Input</code> per known endpoint (<code>Label</code> + <code>Input</code>) — today <code>MacIp</code></td><td><code>TrSetupSettings.Endpoints</code> values</td><td>address-only validation (IP/hostname); never a secret field (ADR-008 — secrets are presence-only, never entered or shown here)</td></tr>
+        <tr><td>Profile details (read-only)</td><td><code>Card</code> + <code>DataTable</code>-style table</td><td>the selected app's requirement rows (id, type, roles) + a <strong>Source</strong> column: built-in profile vs <code>.tfcore/trsetup-profile.json</code> app-repo override (which one wins per REQ-FN-021 merge rules)</td><td>no app selected → <code>Empty</code></td></tr>
+        <tr><td>Settings-file path</td><td><code>TypographyMuted</code> footer info line (<code>file-cog</code> icon)</td><td>full path of the settings JSON (parity with the withdrawn <code>trsetup config</code>)</td><td>—</td></tr>
+        <tr><td>Actions</td><td><code>Button</code> (Default) "Save" + <code>Button</code> (Outline) "Cancel"</td><td>Save persists via <code>JsonSettingsStore</code> (REQ-FN-005); Cancel returns to the board unchanged</td><td>Save disabled while an endpoint value fails validation</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Notes / interactions:</strong> no separate HTML mockup — extend <code>docs/mockups/role-picker.html</code> patterns; this control map is the build contract for /trblazeui (REQ-UI-006, BRD-56). On save the board re-scopes to the new roles/app/endpoints without reload.</p>
+
+    <p><strong>Acceptance pointers (checklist REQ-UI-006):</strong> settings persist via <code>JsonSettingsStore</code> (REQ-FN-005) and survive relaunch; the board re-scopes on save without reload; endpoint inputs validate as addresses and never accept/display secrets (ADR-008); profile-details pane shows built-in vs override source per the REQ-FN-021 merge rules; every interactive control carries a stable <code>data-testid</code> (REQ-NFR-005/BRD-52 discipline).</p>
+
+    <p><strong>Empty / loading / error:</strong> save failure → <code>Alert</code> (Danger) above the actions with the file error; profile load failure → <code>Alert</code> (Danger) in the Profile details region with the loader error.</p>
+
+    <h3 id="screen-fix-all-run-view-fix-run">Screen: Fix-all run view (<code>/fix-run</code>)<a class="anchor-link" href="#screen-fix-all-run-view-fix-run">#</a></h3>
+
+    <p><strong>Mockup:</strong> <a href="./mockups/fix-run.html">docs/mockups/fix-run.html</a> · <strong>Role(s):</strong> all · <strong>BRD:</strong> BRD-29, BRD-30 · <strong>REQ:</strong> REQ-UI-004</p>
+
+    <p><strong>Layout (one line):</strong> header with overall <code>Progress</code> + step counter; ordered step list (dependency order) where done steps are compact ✓ rows, the active step is expanded (live output or consent gate), pending steps are muted; footer Stop button.</p>
+
+    <p><strong>Component map:</strong></p>
+
+    <table>
+      <thead>
+        <tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Run header</td><td><code>Card</code> with <code>Progress</code> + <code>TypographyMuted</code> "Step 3 of 7 — Appium + uiautomator2"</td><td>overall run state</td><td>completed → success <code>Alert</code></td></tr>
+        <tr><td>Step list</td><td><code>ItemGroup</code>; one <code>Item</code> per fix in dependency order</td><td>step icon (✓ done / ⟳ active <code>Spinner</code> / ○ pending / ✗ failed), title, one-line result</td><td>—</td></tr>
+        <tr><td>Consent gate (active step)</td><td>inline <code>AlertDialog</code>-style <code>Card</code> (accent border)</td><td>"This step needs elevation" + exact command in <code>pre</code> + <code>Button</code> "Approve &amp; run" (Default) / "Decline &amp; stop" (Outline)</td><td>declined → run halts; later steps stay pending</td></tr>
+        <tr><td>Live output (active step)</td><td>dark <code>pre</code> in <code>ScrollArea</code> (auto-follow)</td><td>streaming stdout/stderr</td><td>—</td></tr>
+        <tr><td>Failed step</td><td><code>Collapsible</code> open with raw output + exit code <code>Badge</code> (destructive)</td><td>"Continue anyway" / "Stop run" <code>Button</code>s</td><td>—</td></tr>
+        <tr><td>Footer</td><td><code>Button</code> (Destructive Outline) "Stop after current step"</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Notes / interactions:</strong> entered from any "Fix all" button with &gt;1 queued fix; single fixes run inline on the board. Order examples surfaced in step subtitles ("runs before: Appium").</p>
+
+    <p><strong>Empty / loading / error:</strong> nothing queued → <code>Empty</code> ("Nothing to fix — board is green") with "Back to board" action.</p>
+
+    <h3 id="screen-report-preview-report">Screen: Report preview (<code>/report</code>)<a class="anchor-link" href="#screen-report-preview-report">#</a></h3>
+
+    <p><strong>Mockup:</strong> <a href="./mockups/report.html">docs/mockups/report.html</a> · <strong>Role(s):</strong> all · <strong>BRD:</strong> BRD-24, BRD-25 · <strong>REQ:</strong> REQ-UI-005</p>
+
+    <p><strong>Layout (one line):</strong> toolbar (Save .md · Save .html · Copy) above a Card-framed rendered preview of <code>TrSetup-Report-&lt;host&gt;</code> — host/roles/app header, per-group status tables, evidence lines.</p>
+
+    <p><strong>Component map:</strong></p>
+
+    <table>
+      <thead>
+        <tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Toolbar</td><td><code>Toolbar</code> with <code>ToolbarGroup</code> + <code>ToolbarButton</code>s (<code>file-down</code>, <code>file-code</code>, <code>copy</code>)</td><td>Save as MD / Save as HTML / Copy markdown</td><td>copy → toast "Report copied"</td></tr>
+        <tr><td>Report header</td><td><code>Card</code> header block</td><td>host name, date, roles, selected app, overall counts as <code>Badge</code>s</td><td>—</td></tr>
+        <tr><td>Group sections</td><td>per group: <code>TypographyH3</code> + <code>DataTable</code>-style table</td><td>columns: Status (icon+text) · Check · Evidence</td><td>—</td></tr>
+        <tr><td>Secret rows</td><td>table row + <code>Badge</code> (Outline) "presence-only"</td><td>e.g. "RunPod:ApiKey — present (value never shown)"</td><td>—</td></tr>
+        <tr><td>Footnote</td><td><code>TypographyMuted</code></td><td>"Generated by TrSetup — safe to paste into a Claude session (no secret values)."</td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Notes / interactions:</strong> preview reflects the board at export time; regenerate via "Re-check all" on the board first.</p>
+
+    <p><strong>Empty / loading / error:</strong> export before first sweep → <code>Empty</code> ("Run a check sweep first").</p>
+
+    <h2 id="tui-spectre-console-not-a-trblazeui-screen">TUI (Spectre.Console) — not a TrBlazeUI screen<a class="anchor-link" href="#tui-spectre-console-not-a-trblazeui-screen">#</a></h2>
+
+    <p><strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; the CLI/TUI head retires (see checklist REQ-FN-034). Section retained for history.]</strong></p>
+
+    <p>The <code>trsetup</code> terminal TUI (REQ-FN-012/013) renders the <strong>same board model</strong> — groups, status glyphs, evidence, <code>f</code>/<code>a</code>/<code>r</code>/<code>e</code> keys — via Spectre.Console. It is deliberately <strong>not</strong> mocked in HTML here: it is not built by <code>/trblazeui</code> and its visual truth is the terminal. The board grouping, status vocabulary, and action set MUST match the dashboard mockup 1:1 (same engine, thin renderer — Architecture ADR-005). The plan's ASCII sketch in BRD §9 F-BOARD is the TUI's layout reference.</p>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

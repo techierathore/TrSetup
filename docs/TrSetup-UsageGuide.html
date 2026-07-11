@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TrSetup — Usage Guide — Run · Configure · Test</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TrSetup — Usage Guide</h1>
+    <div class="sub">Run it · Configure it · Test it — last rendered 2026-07-10</div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#what-you-are-testing">1. What you are testing</a></li>
+      <li><a href="#run-trsetup-on-windows">2. Run TrSetup on Windows</a></li>
+      <li class="h3"><a href="#before-you-run-prerequisites">2.1 Prerequisites</a></li>
+      <li class="h3"><a href="#build-it-copy-paste-as-is">2.2 Build it</a></li>
+      <li class="h3"><a href="#launch-it">2.3 Launch it</a></li>
+      <li class="h3"><a href="#first-run">2.4 First run</a></li>
+      <li><a href="#run-trsetup-on-a-mac">3. Run TrSetup on a Mac</a></li>
+      <li class="h3"><a href="#option-a-no-build-tools-on-the-mac-browser-board-recommended-first">Option A — browser board</a></li>
+      <li class="h3"><a href="#option-b-native-catalyst-app-build-on-the-mac">Option B — native .app</a></li>
+      <li><a href="#run-the-board-from-wsl-verify-host">4. Run the board from WSL</a></li>
+      <li><a href="#configure-settings-roles-application-endpoints">5. Configure settings</a></li>
+      <li class="h3"><a href="#in-app-via-the-settings-screen-the-normal-way">5.1 In-app Settings screen</a></li>
+      <li class="h3"><a href="#switch-the-application-appstudio-trstudio-framework-only">5.2 Switch the application</a></li>
+      <li class="h3"><a href="#seed-settings-by-copying-a-sample-file">5.3 Seed via sample file</a></li>
+      <li><a href="#uat-test-plan-step-by-step-per-platform">6. UAT test plan</a></li>
+      <li class="h3"><a href="#windows-session-30-min-at-the-windows-machine">6.1 Windows session</a></li>
+      <li class="h3"><a href="#mac-session-30-min-at-the-mac">6.2 Mac session</a></li>
+      <li class="h3"><a href="#wsl-session-10-min-in-the-wsl-terminal-browser">6.3 WSL session</a></li>
+      <li><a href="#logs-troubleshooting">7. Logs &amp; troubleshooting</a></li>
+      <li><a href="#for-agents-automated-harness-canonical-contexts">8. For agents</a></li>
+      <li><a href="#known-limitations">9. Known limitations</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TrSetup — Usage Guide (Run it · Configure it · Test it)</h1>
+    <div class="subtitle">Per-platform, step-by-step: run the app, configure it per application, and do the UAT.</div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#what-you-are-testing">What you are testing</a></li>
+        <li><a href="#run-trsetup-on-windows">Run TrSetup on Windows</a></li>
+        <li><a href="#run-trsetup-on-a-mac">Run TrSetup on a Mac</a> — <a href="#option-a-no-build-tools-on-the-mac-browser-board-recommended-first">Option A (browser)</a> · <a href="#option-b-native-catalyst-app-build-on-the-mac">Option B (native .app)</a></li>
+        <li><a href="#run-the-board-from-wsl-verify-host">Run the board from WSL (verify host)</a></li>
+        <li><a href="#configure-settings-roles-application-endpoints">Configure settings — roles, application, endpoints</a></li>
+        <li><a href="#uat-test-plan-step-by-step-per-platform">UAT test plan — step by step, per platform</a></li>
+        <li><a href="#logs-troubleshooting">Logs &amp; troubleshooting</a></li>
+        <li><a href="#for-agents-automated-harness-canonical-contexts">For agents — automated harness &amp; canonical contexts</a></li>
+        <li><a href="#known-limitations">Known limitations</a></li>
+      </ol>
+    </div>
+
+    <blockquote>
+      <p><strong>How to read this guide:</strong> pick the platform you are sitting at — <a href="#run-trsetup-on-windows">Windows</a>, <a href="#run-trsetup-on-a-mac">Mac</a>, or <a href="#run-the-board-from-wsl-verify-host">WSL</a> — and follow that section top to bottom. Then use <a href="#configure-settings-roles-application-endpoints">§5 Configure settings</a> to point the app at AppStudio / TrStudio, and <a href="#uat-test-plan-step-by-step-per-platform">§6 UAT test plan</a> as your test script. Nothing in a platform section depends on another platform section.</p>
+      <p>This is the single source for how to run and test TrSetup — the agents (self-smoke, verifier) and the human UAT use the SAME setups and walkthroughs below (<code>.tfcore/tasks/_smoke-test-policy.md</code>). Build commands mirror <code>docs/TrSetup-BuildAndRun-Guide.md</code>.</p>
+      <p><strong>Status (2026-07-10):</strong> 33 REQ Verified · 8 pending external UAT (the <a href="#uat-test-plan-step-by-step-per-platform">§6 plan</a>) · 6 N/A (withdrawn with the CLI head) · 0 FAIL.</p>
+    </blockquote>
+
+    <h2 id="what-you-are-testing">1. What you are testing<a class="anchor-link" href="#what-you-are-testing">#</a></h2>
+
+    <p><strong>TrSetup is a local, single-user desktop app</strong> — no login, no accounts, no database. It scans the machine it runs on against a chosen <em>machine role</em> (WSL agent host, Windows device host, Mac device host, Mac app runner) and an optional <em>application profile</em> (AppStudio or TrStudio), shows every prerequisite as a ✓/⚠/✗ board row, and can <strong>fix</strong> broken items after showing you the exact command and asking consent.</p>
+
+    <p>One shipping app: <strong><code>TrSetup</code></strong> (MAUI Blazor Hybrid — Windows unpackaged exe + Mac Catalyst <code>.app</code>). <code>TrSetup.Web</code> is a non-shipping test host that also serves as the no-build-tools way to run the board on a Mac (<a href="#option-a-no-build-tools-on-the-mac-browser-board-recommended-first">§3 Option A</a>).</p>
+
+    <p><strong>The six screens</strong> (all inside the app window, in first-use order):</p>
+
+    <table>
+      <thead><tr><th>Screen</th><th>Route</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td>Role picker</td><td><code>/setup</code></td><td>First-run: pick machine role(s) + application, "Save &amp; scan"</td></tr>
+        <tr><td>Board</td><td><code>/</code></td><td>The dashboard — grouped check rows with ✓/⚠/✗, Re-check all, Fix all, Export</td></tr>
+        <tr><td>Check detail</td><td><code>/check/{id}</code></td><td>Click any row: explanation, evidence, fix preview, last output</td></tr>
+        <tr><td>Fix-all run</td><td><code>/fix-run</code></td><td>Ordered fix steps, each behind a consent gate</td></tr>
+        <tr><td>Report</td><td><code>/report</code></td><td>Export the board as <code>.md</code> + <code>.html</code> (secrets never printed)</td></tr>
+        <tr><td>Settings</td><td><code>/settings</code></td><td>Edit roles, application, endpoints; shows the settings-file path</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="run-trsetup-on-windows">2. Run TrSetup on Windows<a class="anchor-link" href="#run-trsetup-on-windows">#</a></h2>
+
+    <h3 id="before-you-run-prerequisites">2.1 Before you run — prerequisites<a class="anchor-link" href="#before-you-run-prerequisites">#</a></h3>
+    <ol>
+      <li><strong>.NET 10 SDK</strong> installed on Windows (<code>dotnet --version</code> in a Windows terminal shows 10.x).</li>
+      <li><strong>MAUI workload:</strong> <code>dotnet workload install maui</code> (one time).</li>
+      <li>The repo at <code>C:\3AIGenCode\TrSetup</code> (or your clone path).</li>
+    </ol>
+
+    <h3 id="build-it-copy-paste-as-is">2.2 Build it (copy-paste as-is)<a class="anchor-link" href="#build-it-copy-paste-as-is">#</a></h3>
+    <p>From a <strong>Windows terminal</strong> (PowerShell or cmd):</p>
+    <pre><code class="language-powershell">cd C:\3AIGenCode\TrSetup
+dotnet build src/TrSetup -f net10.0-windows10.0.19041.0 -c Release</code></pre>
+    <p>Or from a <strong>WSL terminal</strong>:</p>
+    <pre><code class="language-bash">cd /mnt/c/3AIGenCode/TrSetup
+cmd.exe /c "dotnet build src\TrSetup -f net10.0-windows10.0.19041.0 -c Release"</code></pre>
+    <p><em>(Or Visual Studio: open <code>TrSetup.sln</code> → startup project <code>TrSetup</code> → Release / <code>net10.0-windows10.0.19041.0</code> → Build.)</em></p>
+
+    <h3 id="launch-it">2.3 Launch it<a class="anchor-link" href="#launch-it">#</a></h3>
+    <p>Either double-click <code>src\TrSetup\bin\Release\net10.0-windows10.0.19041.0\win-x64\TrSetup.exe</code> in Explorer, or copy-paste:</p>
+    <p>From a <strong>Windows terminal</strong>:</p>
+    <pre><code class="language-powershell">cd C:\3AIGenCode\TrSetup
+start src\TrSetup\bin\Release\net10.0-windows10.0.19041.0\win-x64\TrSetup.exe</code></pre>
+    <p>Or from a <strong>WSL terminal</strong>:</p>
+    <pre><code class="language-bash">cd /mnt/c/3AIGenCode/TrSetup
+cmd.exe /c "start src\TrSetup\bin\Release\net10.0-windows10.0.19041.0\win-x64\TrSetup.exe"</code></pre>
+    <p>A native window titled <strong>TrSetup</strong> opens showing the board (or the role picker on first run). No installer popup should appear — if an <em>older</em> build once showed "This program might not have installed correctly", click <strong>"This program installed correctly"</strong> once to clear Windows' cached entry.</p>
+    <blockquote><p><strong>Sharing with another Windows machine:</strong> copy the <strong>whole <code>win-x64\</code> folder</strong> — the lone exe will not run on its own.</p></blockquote>
+
+    <h3 id="first-run">2.4 First run<a class="anchor-link" href="#first-run">#</a></h3>
+    <ol>
+      <li>The <strong>role picker</strong> auto-shows (no settings yet).</li>
+      <li>Tick <strong>Device host (Windows)</strong> (add others only if this machine really plays them).</li>
+      <li>Answer the "I develop natively" question (normally <strong>off</strong>).</li>
+      <li>Pick the application — <strong>AppStudio</strong> (or TrStudio / none; you can change it later in <a href="#switch-the-application-appstudio-trstudio-framework-only">§5.2</a>).</li>
+      <li>Click <strong>Save &amp; scan this machine</strong> → the board appears, scoped to your role + app. Rows for roles you did <em>not</em> pick show <code>○ N/A</code> — that is by design, not an error.</li>
+    </ol>
+
+    <hr>
+
+    <h2 id="run-trsetup-on-a-mac">3. Run TrSetup on a Mac<a class="anchor-link" href="#run-trsetup-on-a-mac">#</a></h2>
+
+    <p>Two independent paths. <strong>If your Mac has no dev tools, use Option A.</strong> If you want the real desktop <code>.app</code>, use Option B.</p>
+
+    <table>
+      <thead><tr><th></th><th>Option A — browser board</th><th>Option B — native <code>.app</code></th></tr></thead>
+      <tbody>
+        <tr><td>Needs on the Mac</td><td><strong>Nothing</strong> (just the copied folder)</td><td>Xcode + .NET 10 SDK + MAUI workload</td></tr>
+        <tr><td>Built where</td><td>On <strong>Windows</strong>, copied over</td><td>On <strong>the Mac</strong>, from source</td></tr>
+        <tr><td>You get</td><td>The full board in Safari at <code>localhost:5999</code></td><td><code>TrSetup.app</code> in a native window</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="option-a-no-build-tools-on-the-mac-browser-board-recommended-first">Option A — no build tools on the Mac (browser board) — recommended first<a class="anchor-link" href="#option-a-no-build-tools-on-the-mac-browser-board-recommended-first">#</a></h3>
+
+    <p><strong>Before you start:</strong> a Windows machine with the repo + .NET 10 SDK, and a way to copy ~120 MB to the Mac (SMB share, <code>scp</code>, AirDrop zip, or USB).</p>
+
+    <p><strong>Step 1 — on Windows, publish the Mac binary</strong> (copy-paste; if the Mac is Intel, replace <code>osx-arm64</code> with <code>osx-x64</code>):</p>
+    <p>From a <strong>Windows terminal</strong>:</p>
+    <pre><code class="language-powershell">cd C:\3AIGenCode\TrSetup
+dotnet publish src/TrSetup.Web -c Release -r osx-arm64 --self-contained true -o publish/mac/TrSetup.Web</code></pre>
+    <p>Or from a <strong>WSL terminal</strong>:</p>
+    <pre><code class="language-bash">cd /mnt/c/3AIGenCode/TrSetup
+cmd.exe /c "dotnet publish src\TrSetup.Web -c Release -r osx-arm64 --self-contained true -o publish\mac\TrSetup.Web"</code></pre>
+
+    <p><strong>Step 2 — copy the whole <code>publish/mac/TrSetup.Web/</code> folder to the Mac</strong> (Finder → Cmd+K → <code>smb://&lt;windows-ip&gt;</code>, or <code>scp -r</code>, or zip+AirDrop, or USB).</p>
+
+    <p><strong>Step 3 — on the Mac, in Terminal</strong> (copy-paste; the first line assumes you copied the folder to <code>~/Downloads</code> — adjust if elsewhere):</p>
+    <pre><code class="language-bash">cd ~/Downloads
+chmod +x TrSetup.Web/TrSetup.Web                 # copies via SMB/zip strip the execute bit
+xattr -dr com.apple.quarantine TrSetup.Web       # clear Gatekeeper quarantine (unsigned build)
+./TrSetup.Web/TrSetup.Web                        # starts on http://localhost:5999, opens Safari</code></pre>
+
+    <p><strong>Step 4 —</strong> if Safari didn't open automatically, browse to <code>http://localhost:5999</code>. If Gatekeeper still blocks the binary, allow it once via <strong>System Settings → Privacy &amp; Security</strong>.</p>
+
+    <p><strong>Step 5 — first run:</strong> complete the role picker — tick <strong>Device host (Mac)</strong> and <strong>App runner (Mac)</strong>, pick <strong>AppStudio</strong>, <strong>Save &amp; scan</strong>. (Or pre-seed the settings file before Step 3: <code>cp docs/samples/appstudio-mac-runner.json ~/.trsetup/settings.json</code> — see <a href="#seed-settings-by-copying-a-sample-file">§5.3</a>.)</p>
+
+    <p>You now have the full board with <strong>live Mac detect evidence</strong> — the <code>mac.*</code> rows (Xcode/CLT, .NET+MAUI, Node, Appium xcuitest/mac2, LaunchAgent :4723, stable IP, iOS Simulator) show real Pass/Fail/Warn for <em>this</em> Mac.</p>
+
+    <h3 id="option-b-native-catalyst-app-build-on-the-mac">Option B — native Catalyst .app (build on the Mac)<a class="anchor-link" href="#option-b-native-catalyst-app-build-on-the-mac">#</a></h3>
+
+    <p><strong>Before you start — install on the Mac (one time, manual):</strong></p>
+    <ol>
+      <li><strong>Xcode</strong> (full app from the App Store; launch once and accept the licence).</li>
+      <li><strong>.NET 10 SDK</strong> (macOS installer from dotnet.microsoft.com).</li>
+      <li><strong>MAUI workload:</strong> <code>dotnet workload install maui</code>.</li>
+      <li><strong>git</strong>, and a clone of the TrSetup repo.</li>
+    </ol>
+
+    <p><strong>Build and launch</strong> (copy-paste; the first line assumes the repo is cloned at <code>~/TrSetup</code> — adjust if elsewhere):</p>
+    <pre><code class="language-bash">cd ~/TrSetup
+dotnet build src/TrSetup -f net10.0-maccatalyst -c Release
+cp -R "src/TrSetup/bin/Release/net10.0-maccatalyst/maccatalyst-arm64/TrSetup.app" /Applications/   # Intel Mac: maccatalyst-x64/
+xattr -dr com.apple.quarantine "/Applications/TrSetup.app"
+open "/Applications/TrSetup.app"</code></pre>
+
+    <p>Notes:</p>
+    <ul>
+      <li>The build is <strong>ad-hoc signed</strong> (no Apple Developer certificate needed). First launch may say "cannot verify the developer" — the <code>xattr</code> line above clears it, or allow once via <strong>System Settings → Privacy &amp; Security</strong>.</li>
+      <li>This TFM only exists on macOS — trying <code>net10.0-maccatalyst</code> on Windows fails with <code>NETSDK1139</code> by design.</li>
+      <li>First run: same role picker as Option A Step 5.</li>
+    </ul>
+
+    <hr>
+
+    <h2 id="run-the-board-from-wsl-verify-host">4. Run the board from WSL (verify host)<a class="anchor-link" href="#run-the-board-from-wsl-verify-host">#</a></h2>
+
+    <p>This is the context the automated verifier already covers (all six screens runtime-verified) — you rarely need it manually, but for completeness:</p>
+
+    <pre><code class="language-bash">cd /mnt/c/3AIGenCode/TrSetup
+dotnet run --project src/TrSetup.Web        # binds http://localhost:5999</code></pre>
+
+    <p>Set <code>TRSETUP_NO_BROWSER=1</code> to stop the auto-open. Role for this machine: <strong>Agent host (WSL)</strong>; settings file <code>~/.trsetup/settings.json</code>.</p>
+
+    <hr>
+
+    <h2 id="configure-settings-roles-application-endpoints">5. Configure settings — roles, application, endpoints<a class="anchor-link" href="#configure-settings-roles-application-endpoints">#</a></h2>
+
+    <p>TrSetup's entire state is <strong>one small JSON file</strong>:</p>
+
+    <table>
+      <thead><tr><th>OS / head</th><th>Settings file</th></tr></thead>
+      <tbody>
+        <tr><td>Windows (<code>TrSetup.exe</code>)</td><td><code>%APPDATA%\TrSetup\settings.json</code></td></tr>
+        <tr><td>macOS / Linux / WSL</td><td><code>~/.trsetup/settings.json</code></td></tr>
+      </tbody>
+    </table>
+
+    <p>The <strong>Settings screen shows the exact path on your machine</strong> — that is always the authoritative answer.</p>
+
+    <h3 id="in-app-via-the-settings-screen-the-normal-way">5.1 In-app, via the Settings screen (the normal way)<a class="anchor-link" href="#in-app-via-the-settings-screen-the-normal-way">#</a></h3>
+    <ol>
+      <li>Launch the app (any platform above).</li>
+      <li>In the sidebar, click <strong>Settings</strong> (the <code>sliders</code> icon) → the <code>/settings</code> screen opens.</li>
+      <li>Edit any of:
+        <ul>
+          <li><strong>Machine roles</strong> — tick/untick Agent host (WSL) / Device host (Windows) / Device host (Mac) / App runner (Mac), plus the "I develop natively" variant.</li>
+          <li><strong>Selected application</strong> — AppStudio / TrStudio / none (see <a href="#switch-the-application-appstudio-trstudio-framework-only">§5.2</a>).</li>
+          <li><strong>Endpoints</strong> — today just the <strong>LAN Mac IP</strong> used by the cross-machine Bridges checks (validated in-app as IP/hostname).</li>
+        </ul>
+      </li>
+      <li>Review the read-only <strong>profile details</strong> panel — every requirement row tagged <em>built-in</em> vs <em>app-repo override</em>.</li>
+      <li>Click <strong>Save</strong> → persists to the JSON file and <strong>re-scopes the board immediately, no restart needed</strong>.</li>
+    </ol>
+
+    <h3 id="switch-the-application-appstudio-trstudio-framework-only">5.2 Switch the application (AppStudio / TrStudio / framework-only)<a class="anchor-link" href="#switch-the-application-appstudio-trstudio-framework-only">#</a></h3>
+
+    <p>Each application adds its own profile rows to the board; here is how to set up for each:</p>
+
+    <table>
+      <thead><tr><th>To test…</th><th>Set SelectedApp to</th><th>The board adds</th><th>Typical roles</th></tr></thead>
+      <tbody>
+        <tr><td><strong>AppStudio</strong></td><td><code>AppStudio</code></td><td>AppStudio SDK/tooling profile rows</td><td>WSL agent host, Windows device host, or Mac runner</td></tr>
+        <tr><td><strong>TrStudio</strong></td><td><code>TrStudio</code></td><td>Postgres+PgVector, ffmpeg, ComfyUI runtime, disk-space floor, provider-key rows</td><td>usually one beefy machine with several roles</td></tr>
+        <tr><td><strong>Framework only</strong></td><td><em>(none)</em></td><td>no app rows — core framework + bridge checks only</td><td>any</td></tr>
+      </tbody>
+    </table>
+
+    <p>Steps: <strong>Settings → Selected application → pick → Save.</strong> The board re-scopes instantly — e.g. switching AppStudio → TrStudio replaces the AppStudio rows with the TrStudio service/ffmpeg/ComfyUI/disk rows. (The board header also offers the app switcher directly.)</p>
+
+    <h3 id="seed-settings-by-copying-a-sample-file">5.3 Seed settings by copying a sample file<a class="anchor-link" href="#seed-settings-by-copying-a-sample-file">#</a></h3>
+
+    <p>For a fresh or headless machine you can skip the picker entirely — copy a ready-made file <strong>before first launch</strong>.</p>
+    <p>On <strong>Mac / WSL / Linux</strong> (run from the repo root; swap in the sample you want from the table below):</p>
+    <pre><code class="language-bash">cp docs/samples/appstudio-mac-runner.json ~/.trsetup/settings.json</code></pre>
+    <p>On <strong>Windows</strong> (PowerShell):</p>
+    <pre><code class="language-powershell">cd C:\3AIGenCode\TrSetup
+New-Item -ItemType Directory -Force $env:APPDATA\TrSetup | Out-Null
+Copy-Item docs\samples\appstudio-windows-device-host.json $env:APPDATA\TrSetup\settings.json</code></pre>
+
+    <table>
+      <thead><tr><th>Sample (in <code>docs/samples/</code>)</th><th>Roles</th><th>App</th><th>Use for</th></tr></thead>
+      <tbody>
+        <tr><td><code>framework-only-wsl.json</code></td><td><code>AgentHostWsl</code></td><td><em>(none)</em></td><td>Core framework checks only</td></tr>
+        <tr><td><code>appstudio-wsl-agent.json</code></td><td><code>AgentHostWsl</code></td><td>AppStudio</td><td>The common WSL dev box</td></tr>
+        <tr><td><code>appstudio-windows-device-host.json</code></td><td><code>DeviceHostWindows</code></td><td>AppStudio</td><td>Windows box serving Android emulator + Appium</td></tr>
+        <tr><td><code>appstudio-mac-runner.json</code></td><td><code>DeviceHostMac, AppRunnerMac</code></td><td>AppStudio</td><td>LAN Mac hosting Appium + building AppStudio (Catalyst)</td></tr>
+        <tr><td><code>trstudio-full.json</code></td><td>all four roles</td><td>TrStudio</td><td>One machine, every role, the heavy TrStudio profile</td></tr>
+      </tbody>
+    </table>
+
+    <p>Field reference (full detail in <code>docs/samples/README.md</code>):</p>
+    <ul>
+      <li><strong><code>Roles</code></strong> — comma-separated: <code>AgentHostWsl</code>, <code>DeviceHostWindows</code>, <code>DeviceHostMac</code>, <code>AppRunnerMac</code>, optional <code>NativeDev</code>. Only your roles' checks run; the rest show <code>○ N/A</code> (by design).</li>
+      <li><strong><code>SelectedApp</code></strong> — <code>"AppStudio"</code> / <code>"TrStudio"</code> / <code>null</code>.</li>
+      <li><strong><code>Endpoints</code></strong> — address-only (today <code>"MacIp"</code>). <strong>Secrets are never stored here.</strong></li>
+    </ul>
+
+    <p>Everything seeded this way remains editable in-app afterwards (<a href="#in-app-via-the-settings-screen-the-normal-way">§5.1</a>).</p>
+
+    <hr>
+
+    <h2 id="uat-test-plan-step-by-step-per-platform">6. UAT test plan — step by step, per platform<a class="anchor-link" href="#uat-test-plan-step-by-step-per-platform">#</a></h2>
+
+    <p>Do the sessions in this order. Tick each ✅ as you go; the REQ tags in brackets are what each step proves — when a session passes, mark those REQs <code>Verified</code> in <code>docs/TrSetup-Checklist.md</code> (Remarks: UAT pass + date).</p>
+
+    <h3 id="windows-session-30-min-at-the-windows-machine">6.1 Windows session (~30 min, at the Windows machine)<a class="anchor-link" href="#windows-session-30-min-at-the-windows-machine">#</a></h3>
+    <ol>
+      <li>Build + launch per <a href="#run-trsetup-on-windows">§2</a>. ✅ <strong>Board renders in the native TrSetup window, no installer popup.</strong> <em>[FN-030, BRD-44]</em></li>
+      <li>First-run role picker: Device host (Windows) + AppStudio → Save &amp; scan. ✅ <strong>Relaunch shows the board, not the picker</strong> (selections persisted). <em>[UI-003, FN-005]</em></li>
+      <li>On the board: check the grouped rows (Framework core / Bridges / AppStudio profile) each show icon + word + real evidence; press <strong>Re-check all</strong>. ✅ <strong>Sweep completes &lt; 30 s with streaming statuses.</strong> <em>[UI-001, NFR-001]</em></li>
+      <li>Click a failing row → detail sheet: read Explain, expand Last run output, note the Fix preview command. ✅ <strong>All panels populated; manual-only checks show guidance and no Fix button.</strong> <em>[UI-002]</em></li>
+      <li>Deliberately break one <strong>fixable Windows item</strong>, run <strong>Fix</strong> from the board. ✅ <strong>Row goes red → green with re-verify; the fix showed its command and asked consent first.</strong> <em>[FN-015]</em></li>
+      <li><strong>Fix all</strong> with two broken items: approve the first consent gate, <strong>decline</strong> the second. ✅ <strong>Run halts at the decline, later steps stay pending; re-run approving all succeeds and is idempotent.</strong> <em>[UI-004, FN-018/019/020]</em></li>
+      <li>Switch application to <strong>TrStudio</strong> (<a href="#switch-the-application-appstudio-trstudio-framework-only">§5.2</a>). ✅ <strong>Board re-scopes without reload to the TrStudio rows.</strong> Approve the <strong>ComfyUI</strong> install fixer <em>[FN-025]</em> and the <strong>Postgres+PgVector / ffmpeg</strong> fixers <em>[FN-026]</em> — rows go green. <em>(These also count if you run them on the Mac instead.)</em></li>
+      <li><strong>Export report</strong> → Save as <code>.md</code> + <code>.html</code>; search both files for any secret value you have configured. ✅ <strong><code>env-secret</code> rows say "present (value never shown)"; zero secret values found.</strong> <em>[UI-005, FN-010, NFR-002]</em></li>
+    </ol>
+
+    <h3 id="mac-session-30-min-at-the-mac">6.2 Mac session (~30 min, at the Mac)<a class="anchor-link" href="#mac-session-30-min-at-the-mac">#</a></h3>
+    <ol>
+      <li>Run the board via <strong>Option A</strong> (<a href="#run-trsetup-on-a-mac">§3</a>) with roles Device host (Mac) + App runner (Mac), AppStudio. ✅ <strong><code>mac.*</code> rows show live Pass/Fail/Warn evidence — Xcode/CLT, .NET+MAUI, Node, Appium, LaunchAgent :4723, stable IP, iOS Simulator — not blanks.</strong> <em>[FN-008]</em></li>
+      <li>Deliberately break one <strong>fixable Mac item</strong>, Fix from the board. ✅ <strong>Red → green with re-verify.</strong> <em>[FN-016]</em></li>
+      <li>Build + launch the native <code>.app</code> via <strong>Option B</strong>. ✅ <strong>Native window titled TrSetup shows the board.</strong> <em>[FN-028 build path]</em></li>
+      <li>In the native app, with every Mac app-runner prerequisite green, run the board's <strong>"Build &amp; install AppStudio for Mac (Catalyst)"</strong> fixer. ✅ <strong>It emits AppStudio's <code>.app</code>.</strong> <em>[FN-028]</em></li>
+      <li>Confirm the log file exists: <code>~/Library/Containers/com.techierathore.trsetup/Data/Library/Application Support/logs/trsetup-&lt;date&gt;.log</code>. ✅ <em>[NFR-007 on Mac]</em></li>
+      <li><em>(If not done on Windows step 7)</em> run the ComfyUI / Postgres+PgVector / ffmpeg fixers here. <em>[FN-025, FN-026]</em></li>
+    </ol>
+
+    <h3 id="wsl-session-10-min-in-the-wsl-terminal-browser">6.3 WSL session (~10 min, in the WSL terminal + browser)<a class="anchor-link" href="#wsl-session-10-min-in-the-wsl-terminal-browser">#</a></h3>
+    <ol>
+      <li>Break a fixable WSL item — e.g. remove <code>~/bin/winrun</code> — launch the board (<a href="#run-the-board-from-wsl-verify-host">§4</a>), Fix it. ✅ <strong>Red → green with re-verify.</strong> <em>[FN-014]</em></li>
+    </ol>
+
+    <blockquote><p>When all three sessions pass, the 8 pending rows (FN-008, FN-014, FN-015, FN-016, FN-025, FN-026, FN-028, FN-030) flip to Verified and the owner sets PROJECT-STATUS to <code>Released</code>.</p></blockquote>
+
+    <hr>
+
+    <h2 id="logs-troubleshooting">7. Logs &amp; troubleshooting<a class="anchor-link" href="#logs-troubleshooting">#</a></h2>
+
+    <p>The shipping app writes a rolling <strong>Serilog</strong> log (one file per day, ~14 kept). When a detect or fix misbehaves, open the newest <code>trsetup-&lt;date&gt;.log</code> <strong>before filing anything</strong>:</p>
+
+    <table>
+      <thead><tr><th>Platform</th><th>Log location</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Windows</strong> (<code>TrSetup.exe</code>)</td><td><code>%LOCALAPPDATA%\User Name\com.techierathore.trsetup\Data\logs\trsetup-&lt;date&gt;.log</code></td></tr>
+        <tr><td><strong>Mac</strong> (Catalyst <code>.app</code>)</td><td><code>~/Library/Containers/com.techierathore.trsetup/Data/Library/Application Support/logs/trsetup-&lt;date&gt;.log</code></td></tr>
+        <tr><td><strong><code>TrSetup.Web</code></strong> (browser board / test host)</td><td>No file — logs to the console it was launched from</td></tr>
+      </tbody>
+    </table>
+
+    <p><em>(Tip: the Settings screen shows the settings-file path; the log folder sits under the same app-data root.)</em></p>
+
+    <p>Common issues:</p>
+
+    <table>
+      <thead><tr><th>Symptom</th><th>Platform</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>"This program might not have installed correctly"</td><td>Windows (old builds only)</td><td>Click <strong>"This program installed correctly"</strong> once; current builds embed a manifest that suppresses it</td></tr>
+        <tr><td>"cannot verify the developer"</td><td>Mac</td><td><code>xattr -dr com.apple.quarantine &lt;path&gt;</code> or allow once in System Settings → Privacy &amp; Security</td></tr>
+        <tr><td><code>NETSDK1139</code> / unknown TFM <code>net10.0-maccatalyst</code></td><td>Windows</td><td>Expected — the Catalyst head only builds on macOS (<a href="#option-b-native-catalyst-app-build-on-the-mac">§3 Option B</a>)</td></tr>
+        <tr><td>Port busy / wrong port (browser board)</td><td>Mac/WSL</td><td><code>ASPNETCORE_URLS=http://localhost:5999</code> before launching; <code>TRSETUP_NO_BROWSER=1</code> stops the auto-open</td></tr>
+        <tr><td>A lowercase <code>trsetup</code> folder appears under <code>publish/&lt;rid&gt;/</code></td><td>any</td><td><strong>Do not run it</strong> — that is the publish output of the deleted Spectre CLI head (removed 2026-07-09, REQ-FN-034; stale copies were purged 2026-07-10). If one reappears it is a stale artifact — delete it. The only supported ways to run TrSetup are §2–§4</td></tr>
+        <tr><td>Board rows show <code>○ N/A</code></td><td>any</td><td>Not an error — only your selected roles' + app's checks run; widen the roles in Settings</td></tr>
+        <tr><td>Board cramped below ~390 px width</td><td>any</td><td>Known minor item — the status table needs horizontal scroll; desktop is the target</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="for-agents-automated-harness-canonical-contexts">8. For agents — automated harness &amp; canonical contexts<a class="anchor-link" href="#for-agents-automated-harness-canonical-contexts">#</a></h2>
+
+    <p><em>(Human testers can stop at §7. This section keeps the agent-facing contract.)</em></p>
+
+    <pre><code class="language-bash">dotnet test                # unit tests (Core; the Cli suite was deleted under REQ-FN-034)
+npx playwright test        # UI render + visual gates (tests/verify/, incl. settings.spec.ts)</code></pre>
+
+    <p>The Playwright harness boots <code>TrSetup.Web</code> purely as the <strong>test host</strong> for the shared <code>TrSetupUI</code> screens (<code>baseURL http://localhost:5999</code>; respects <code>TRSETUP_NO_BROWSER=1</code>). It is not a product head (REQ-FN-034).</p>
+
+    <p><strong>Canonical machine-role contexts</strong> (there are no logins — these replace test users; agents and UAT use the same four):</p>
+
+    <table>
+      <thead><tr><th>#</th><th>Context</th><th>Roles</th><th>Status</th><th>Maps to</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>WSL agent-host</td><td>Agent host (WSL)</td><td>✅ verified</td><td><a href="#run-the-board-from-wsl-verify-host">§4</a> / <a href="#wsl-session-10-min-in-the-wsl-terminal-browser">§6.3</a></td></tr>
+        <tr><td>2</td><td>Windows device-host</td><td>Device host (Windows)</td><td>✅ detect verified; fixers = UAT</td><td><a href="#run-trsetup-on-windows">§2</a> / <a href="#windows-session-30-min-at-the-windows-machine">§6.1</a></td></tr>
+        <tr><td>3</td><td>Mac device-host + app-runner</td><td>Device host (Mac) + App runner (Mac)</td><td>⬜ needs the LAN Mac</td><td><a href="#run-trsetup-on-a-mac">§3</a> / <a href="#mac-session-30-min-at-the-mac">§6.2</a></td></tr>
+        <tr><td>4</td><td>Native-dev</td><td>any role + "I develop natively"</td><td>⬜</td><td>verifies WSL-bridge checks are dropped (BRD-8)</td></tr>
+      </tbody>
+    </table>
+
+    <p>Seeding = the settings JSON is the entire "user" state (FN-005), e.g. context #1 + AppStudio: <code>{ "Roles": "AgentHostWsl", "SelectedApp": "AppStudio" }</code>.</p>
+
+    <p><strong>Screen-to-REQ coverage map</strong> (what the §6 steps prove, for the verifier):</p>
+
+    <table>
+      <thead><tr><th>Screen / flow</th><th>Covers</th></tr></thead>
+      <tbody>
+        <tr><td>Role picker <code>/setup</code></td><td>BRD-6/7/8 · REQ-UI-003, REQ-FN-005</td></tr>
+        <tr><td>Board <code>/</code></td><td>BRD-5/9/10/12/17/33-43 · REQ-UI-001, REQ-FN-004/006/007/021/022/023, REQ-NFR-001</td></tr>
+        <tr><td>Check detail <code>/check/{id}</code></td><td>BRD-11/13 · REQ-UI-002</td></tr>
+        <tr><td>Fix-all <code>/fix-run</code></td><td>BRD-3/18/28/29/30 · REQ-UI-004, REQ-FN-014/018/019/020</td></tr>
+        <tr><td>Report <code>/report</code></td><td>BRD-24/25 · REQ-UI-005, REQ-FN-010, REQ-NFR-002</td></tr>
+        <tr><td>Settings <code>/settings</code></td><td>REQ-UI-006 (Verified 2026-07-09)</td></tr>
+        <tr><td>MAUI head boot Win/Mac</td><td>BRD-44 · REQ-FN-028, REQ-FN-030</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="known-limitations">9. Known limitations<a class="anchor-link" href="#known-limitations">#</a></h2>
+
+    <ul>
+      <li><strong>8 REQ pending external UAT</strong> (destructive fixers + host-bound boots) — the <a href="#uat-test-plan-step-by-step-per-platform">§6 plan</a> is exactly that list; 0 FAIL.</li>
+      <li><strong>Heads decommissioned (REQ-FN-034, Verified):</strong> the Spectre CLI head is deleted; <code>TrSetup.Web</code> is retained only as the test host / copy-to-Mac vehicle — never document it as a product head. Stale <code>trsetup</code> CLI folders (published 2026-07-07 by the since-deleted publish scripts) sat under <code>publish/{osx-arm64,linux-x64,win-x64}/</code> until they were deleted on 2026-07-10 — only <code>TrSetup.Web</code> remains there.</li>
+      <li><strong>Narrow screens (&lt;390 px):</strong> board status table needs horizontal scroll; desktop is the target.</li>
+      <li>Full Xcode install and router DHCP reservation are permanently manual (by design — BRD §12).</li>
+      <li>Library gaps: none (TrBlazeUI 0, TechieRag not used).</li>
+    </ul>
+
+    <hr>
+    <p><em>Restructured 2026-07-10 for human UAT (per-platform, step-by-step) after owner feedback — same facts as the 2026-07-09 revision (REQ-FN-034/035 rescope), reorganized: platform sections §2–§4, settings-per-application §5, per-platform UAT script §6, agent contract moved to §8.</em></p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

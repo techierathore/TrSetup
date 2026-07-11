@@ -1,0 +1,75 @@
+@inherits LayoutComponentBase
+
+@* Real TrBlazeUI shell (REQ-UI-*): collapsible sidebar (Board / Fix all / Report / Setup) +
+   SidebarInset content area, plus the global consent modal, toast host and portal host. *@
+<SidebarProvider DefaultOpen="true" HeightClass="h-screen">
+    <Sidebar Collapsible="true">
+        <SidebarHeader>
+            <SidebarHeaderContent>
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <LucideIcon Name="wrench" Size="16" />
+                </div>
+                <SidebarHeaderInfo>
+                    <span class="truncate font-semibold">TrSetup</span>
+                    <span class="truncate text-xs text-muted-foreground">v0.1 — Environment Doctor</span>
+                </SidebarHeaderInfo>
+            </SidebarHeaderContent>
+        </SidebarHeader>
+        <SidebarContent>
+            <SidebarGroup>
+                <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton Href="/" Match="NavLinkMatch.All" Tooltip="Board">
+                                <LucideIcon Name="layout-dashboard" Size="16" />
+                                <span data-testid="NavBoard">Board</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton Href="/fix-run" Tooltip="Fix all run">
+                                <LucideIcon Name="play" Size="16" />
+                                <span data-testid="NavFixRun">Fix all run</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton Href="/report" Tooltip="Report">
+                                <LucideIcon Name="file-text" Size="16" />
+                                <span data-testid="NavReport">Report</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton Href="/setup" Tooltip="Setup">
+                                <LucideIcon Name="settings" Size="16" />
+                                <span data-testid="NavSetup">Setup</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton Href="/settings" Tooltip="Settings">
+                                <LucideIcon Name="sliders" Size="16" />
+                                <span data-testid="NavSettings">Settings</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+            <div class="ts-sb-foot" data-testid="MachineFooter">
+                <LucideIcon Name="monitor" Size="12" />
+                <span>Machine: @objHost</span>
+            </div>
+        </SidebarFooter>
+    </Sidebar>
+    <SidebarInset>
+        @Body
+    </SidebarInset>
+</SidebarProvider>
+
+<ConsentDialog />
+<ToastProvider Position="ToastPosition.BottomRight" />
+<PortalHost />
+
+@code {
+    private readonly string objHost = Environment.MachineName;
+}

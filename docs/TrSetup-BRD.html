@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TrSetup — Business Requirements (BRD)</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TrSetup — Business Requirements</h1>
+    <div class="sub">Last rendered: 2026-07-10</div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#executive-summary">Executive summary</a></li>
+      <li><a href="#business-objectives">Business objectives</a></li>
+      <li><a href="#scope">Scope</a></li>
+      <li><a href="#development-status">Development status</a></li>
+      <li><a href="#stakeholders-users">Stakeholders / users</a></li>
+      <li><a href="#context-diagram">Context diagram</a></li>
+      <li><a href="#user-journey-primary-use-case">User journey — primary use case</a></li>
+      <li><a href="#component-sketch">Component sketch</a></li>
+      <li><a href="#feature-catalog">Feature catalog</a></li>
+      <li class="h3"><a href="#f-engine-check-engine-detect-preview-fix-re-verify">F-ENGINE: Check engine</a></li>
+      <li class="h3"><a href="#f-roles-machine-roles-first-run-role-picker">F-ROLES: Machine roles &amp; role picker</a></li>
+      <li class="h3"><a href="#f-board-status-board-dashboard-detail-pane">F-BOARD: Status board &amp; detail pane</a></li>
+      <li class="h3"><a href="#f-webgui-blazor-server-gui-head-wsl-linux-withdrawn-2026-07-09">F-WEBGUI: Blazor Server head (withdrawn)</a></li>
+      <li class="h3"><a href="#f-tui-terminal-tui-fallback-withdrawn-2026-07-09">F-TUI: Terminal TUI (withdrawn)</a></li>
+      <li class="h3"><a href="#f-wslchk-check-catalog-wsl-agent-host">F-WSLCHK: WSL agent host</a></li>
+      <li class="h3"><a href="#f-winchk-check-catalog-windows-device-host">F-WINCHK: Windows device host</a></li>
+      <li class="h3"><a href="#f-macchk-check-catalog-mac-device-host">F-MACCHK: Mac device host</a></li>
+      <li class="h3"><a href="#f-bridge-cross-machine-reachability-probes">F-BRIDGE: Reachability probes</a></li>
+      <li class="h3"><a href="#f-report-report-export">F-REPORT: Report export</a></li>
+      <li class="h3"><a href="#f-fix-fixers-installers-fix-all">F-FIX: Fixers &amp; Fix-all</a></li>
+      <li class="h3"><a href="#f-elev-elevation-consent-secrets-stance">F-ELEV: Elevation &amp; secrets</a></li>
+      <li class="h3"><a href="#f-profiles-app-profiles-declarative">F-PROFILES: App profiles</a></li>
+      <li class="h3"><a href="#f-macrun-mac-app-runner-role-build-for-mac-fixer">F-MACRUN: Mac app-runner role</a></li>
+      <li class="h3"><a href="#f-mauihead-maui-blazor-hybrid-head-distribution">F-MAUIHEAD: MAUI head</a></li>
+      <li class="h3"><a href="#f-agent-cli-agent-mode-check-json-withdrawn-2026-07-09">F-AGENT: agent mode (withdrawn)</a></li>
+      <li><a href="#functional-requirements-brd-ledger">Functional requirements (BRD ledger)</a></li>
+      <li><a href="#non-functional-requirements">Non-functional requirements</a></li>
+      <li><a href="#constraints-assumptions">Constraints &amp; assumptions</a></li>
+      <li><a href="#success-metrics">Success metrics</a></li>
+      <li><a href="#risks">Risks</a></li>
+      <li><a href="#glossary">Glossary</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TrSetup — Business Requirements</h1>
+    <div class="subtitle">Business Requirements Document (BRD) — environment doctor for the TechieFlow harness and portfolio apps</div>
+
+<!-- AGENT-ONLY AUTHORING NOTES (carried from the template as a comment):
+  STABLE IDS: every requirement has a BRD-{N} ID; IDs are append-only across revisions.
+  DEPTH MANDATE: human document; one-liners only in §10; §9 is the heart.
+  MERMAID MANDATE: quote every label per html-render-shell.md §5.5; no `end` node ids. -->
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#executive-summary">Executive summary</a></li>
+        <li><a href="#business-objectives">Business objectives</a></li>
+        <li><a href="#scope">Scope</a></li>
+        <li><a href="#development-status">Development status</a></li>
+        <li><a href="#stakeholders-users">Stakeholders / users</a></li>
+        <li><a href="#context-diagram">Context diagram</a></li>
+        <li><a href="#user-journey-primary-use-case">User journey — primary use case</a></li>
+        <li><a href="#component-sketch">Component sketch</a></li>
+        <li><a href="#feature-catalog">Feature catalog</a>
+          <ul>
+            <li><a href="#f-engine-check-engine-detect-preview-fix-re-verify">F-ENGINE: Check engine (Detect → Preview → Fix → Re-verify)</a></li>
+            <li><a href="#f-roles-machine-roles-first-run-role-picker">F-ROLES: Machine roles &amp; first-run role picker</a></li>
+            <li><a href="#f-board-status-board-dashboard-detail-pane">F-BOARD: Status board dashboard &amp; detail pane</a></li>
+            <li><a href="#f-webgui-blazor-server-gui-head-wsl-linux-withdrawn-2026-07-09">F-WEBGUI: Blazor Server GUI head (WSL / Linux) — WITHDRAWN 2026-07-09</a></li>
+            <li><a href="#f-tui-terminal-tui-fallback-withdrawn-2026-07-09">F-TUI: Terminal TUI fallback — WITHDRAWN 2026-07-09</a></li>
+            <li><a href="#f-wslchk-check-catalog-wsl-agent-host">F-WSLCHK: Check catalog — WSL agent host</a></li>
+            <li><a href="#f-winchk-check-catalog-windows-device-host">F-WINCHK: Check catalog — Windows device host</a></li>
+            <li><a href="#f-macchk-check-catalog-mac-device-host">F-MACCHK: Check catalog — Mac device host</a></li>
+            <li><a href="#f-bridge-cross-machine-reachability-probes">F-BRIDGE: Cross-machine reachability probes</a></li>
+            <li><a href="#f-report-report-export">F-REPORT: Report export</a></li>
+            <li><a href="#f-fix-fixers-installers-fix-all">F-FIX: Fixers / installers &amp; Fix-all</a></li>
+            <li><a href="#f-elev-elevation-consent-secrets-stance">F-ELEV: Elevation, consent &amp; secrets stance</a></li>
+            <li><a href="#f-profiles-app-profiles-declarative">F-PROFILES: App profiles (declarative)</a></li>
+            <li><a href="#f-macrun-mac-app-runner-role-build-for-mac-fixer">F-MACRUN: Mac app-runner role &amp; Build-for-Mac fixer</a></li>
+            <li><a href="#f-mauihead-maui-blazor-hybrid-head-distribution">F-MAUIHEAD: MAUI Blazor Hybrid head &amp; distribution</a></li>
+            <li><a href="#f-agent-cli-agent-mode-check-json-withdrawn-2026-07-09">F-AGENT: CLI / agent mode (--check --json) — WITHDRAWN 2026-07-09</a></li>
+          </ul>
+        </li>
+        <li><a href="#functional-requirements-brd-ledger">Functional requirements (BRD ledger)</a></li>
+        <li><a href="#non-functional-requirements">Non-functional requirements</a></li>
+        <li><a href="#constraints-assumptions">Constraints &amp; assumptions</a></li>
+        <li><a href="#success-metrics">Success metrics</a></li>
+        <li><a href="#risks">Risks</a></li>
+        <li><a href="#glossary">Glossary</a></li>
+      </ol>
+    </div>
+
+    <h2 id="executive-summary">1. Executive summary<a class="anchor-link" href="#executive-summary">#</a></h2>
+
+    <blockquote><p><strong>Scope change 2026-07-09 (owner decision):</strong> TrSetup ships as a <strong>single MAUI Blazor Hybrid desktop app</strong> — <code>TrSetup</code> (Windows unpackaged exe + Mac Catalyst) hosting the <code>TrSetupUI</code> RCL over <code>TrSetup.Core</code>. The Blazor Server browser head (<code>TrSetup.Web</code>) and the Spectre.Console CLI/TUI head (<code>TrSetup.Cli</code>, including <code>--check --json</code> agent mode) are <strong>withdrawn</strong>; code decommission is tracked by checklist <strong>REQ-FN-034</strong>. Withdrawn feature/requirement text below is retained for history and marked, never deleted.</p></blockquote>
+
+    <p>Getting a machine ready for the TechieFlow verification harness — and for building and running the portfolio apps themselves — is today a scattered set of copy-paste commands across <strong>three environments</strong> (WSL, the Windows host, and a LAN Mac), plus per-app services and keys. Every step is manual, order-sensitive, error-prone, easy to forget on a new machine or reinstall, and impossible to <em>re-verify</em> quickly ("is my bridge still up?"). A framework user who isn't the owner has no realistic chance of getting it right from prose.</p>
+
+    <p><strong>TrSetup</strong> replaces all of it with one small app: open it → it shows a red/amber/green board of every required integration for <em>this machine's role</em> and <em>the selected app</em> → click <strong>Fix</strong> (or <strong>Fix all</strong>) → it <strong>downloads, installs and configures whatever is missing itself</strong> → re-checks → green. One codebase ships <strong>one head</strong> (since 2026-07-09): the native MAUI Blazor Hybrid desktop GUI on Windows and macOS — a thin renderer over one UI-free check engine. <em>(Originally four heads — the Windows/Mac GUI plus a Blazor Server browser GUI for WSL/Linux and a terminal TUI; the browser and terminal heads were withdrawn 2026-07-09.)</em></p>
+
+    <p>What you have to run today, per environment (the pain TrSetup deletes):</p>
+
+    <table>
+      <thead><tr><th>Where</th><th>What you have to run today</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td><strong>WSL</strong></td><td>apt-install 15 headless-Chromium libs; create <code>~/bin/winrun</code>; PATH edit; Playwright CLI + browsers; .NET SDK</td><td>WORKFLOW §0</td></tr>
+        <tr><td><strong>Windows host</strong></td><td><code>.wslconfig</code> mirrored networking + <code>wsl --shutdown</code>; Android SDK <code>sdkmanager</code>/<code>avdmanager</code> (system image + <code>Pixel_API_34</code> AVD); Node + <code>npm install -g appium</code>; <code>appium driver install uiautomator2</code>; <code>start-android-verify.ps1</code> helper; MAUI workload</td><td>WORKFLOW §0b steps 1–2</td></tr>
+        <tr><td><strong>Mac (LAN)</strong></td><td>Xcode; .NET SDK + <code>dotnet workload install maui</code>; Node + appium; <code>xcuitest</code> + <code>mac2</code> drivers; serve <code>appium --address 0.0.0.0 --port 4723</code>; stable IP</td><td>WORKFLOW §0b step 3</td></tr>
+        <tr><td><strong>Per app</strong></td><td><code>core-config.yaml → runtimeVerification.appium</code> registration; <code>curl …/status</code> verification; app-specific services (Postgres, ffmpeg, API keys, private NuGet feeds…)</td><td>§0b step 4 + each app's BRD</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="business-objectives">2. Business objectives<a class="anchor-link" href="#business-objectives">#</a></h2>
+
+    <ul>
+      <li>Replace the WORKFLOW §0/§0b manual setup prose with "run TrSetup, click Fix all" — measured by the sections shrinking to a one-liner after P2 proves out (locked decision).</li>
+      <li><strong>Fix by installing, not by instructing</strong>: any missing required SDK/tool/runtime (Node.js, Android SDK, .NET SDK, MAUI workloads, Python, ComfyUI, Appium + drivers, Playwright, PostgreSQL + PgVector, ffmpeg) is downloaded and installed by TrSetup itself.</li>
+      <li>Make environment state <em>re-verifiable in under a minute</em> ("is my bridge still up?") on any of the four machine roles.</li>
+      <li>Give every portfolio app a <strong>declarative profile</strong> so "prepare a machine for app X" needs no new tool code.</li>
+      <li>Solve the bare-Mac bootstrap: a self-contained copy of TrSetup prepares a Mac that has nothing installed — including the prerequisites for building the apps on it.</li>
+      <li>Produce a shareable report of the full board suitable for pasting into a Claude session when something needs human/AI diagnosis.</li>
+    </ul>
+
+    <h2 id="scope">3. Scope<a class="anchor-link" href="#scope">#</a></h2>
+
+    <p><strong>In scope:</strong> environment checking and remediation for the four machine roles; auto-install of SDKs/tools/runtimes (including isolated Python + ComfyUI); declarative per-app profiles (AppStudio, TrStudio built in; app-repo override); cross-machine reachability probes; <code>core-config.yaml</code> appium-block writer; Mac-side one-command app builds ("Build &lt;App&gt; for Mac" fixer); report export; one head — the MAUI Blazor Hybrid desktop app (Windows GUI, Mac GUI). <em>(Scope change 2026-07-09: the WSL browser GUI, terminal TUI, and <code>--json</code> agent mode heads are withdrawn — see §1 and REQ-FN-034.)</em></p>
+
+    <p><strong>Out of scope (explicit, from the plan's non-goals):</strong></p>
+    <ul>
+      <li><strong>Not</strong> a re-implementation of TrStudioAdmin's management surface. Boundary (revised 2026-07-05): TrSetup <strong>does</strong> install host-level runtimes including the isolated Python env and ComfyUI itself; TrStudioAdmin owns everything <em>above</em> the runtime — model downloads into the registry, workflow import/mapping, RunPod endpoints, provider config. Rule of thumb: <strong>TrSetup gets the machine to "the app can start"; the app's own admin takes it from there.</strong></li>
+      <li><strong>Not</strong> a secrets manager — presence-only checks; never stores, displays, or transmits secret values; never probes paid APIs.</li>
+      <li><strong>Not</strong> an installer for the apps' own binaries — the build-and-run guides + Mac-side build automation cover that; TrSetup prepares the <em>environment</em>.</li>
+      <li>No auto-elevation tricks: anything needing admin/sudo runs visibly with consent.</li>
+    </ul>
+
+    <h2 id="development-status">4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
+
+<!-- Greenfield: this table is the build ROADMAP. Live per-REQ status lives in
+     PROJECT-STATUS.md + docs/TrSetup-Checklist.md. AUTO-MAINTAINED after day-1. -->
+
+    <p><strong>Snapshot as of 2026-07-09.</strong> Live, per-requirement status: see <code>PROJECT-STATUS.md</code> and the <strong>Requirements Status</strong> table in <code>docs/TrSetup-Checklist.md</code>. <strong>Scope change 2026-07-09 (owner decision):</strong> the Web and CLI/TUI heads are withdrawn — decommission tracked by checklist <strong>REQ-FN-034</strong>, and a new standing Observability NFR (Serilog file logging in the MAUI head) is <strong>REQ-NFR-007</strong>. Pre-change baseline (2026-07-07 handoff): all 44 REQ built, 36 Verified, 8 pending UAT on external hosts, 0 FAIL.</p>
+
+    <table>
+      <thead><tr><th>Feature (F-code)</th><th>Phase</th><th>Status</th><th>%</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>F-ENGINE: Check engine</td><td>P1</td><td>Done</td><td>100</td><td>Contract + pipeline + runner + scoping + settings — all Verified</td></tr>
+        <tr><td>F-ROLES: Machine roles &amp; role picker</td><td>P1/P6</td><td>Done</td><td>100</td><td>4 roles + native-dev; role picker + <strong>Settings screen <code>/settings</code> (BRD-56 / REQ-UI-006)</strong> both Verified 2026-07-09 (endpoints editable in-app, profile-details built-in-vs-override)</td></tr>
+        <tr><td>F-BOARD: Status board &amp; detail pane</td><td>P1</td><td>Done</td><td>100</td><td>Grouped board + detail sheet Verified (⚠ minor board mobile-overflow)</td></tr>
+        <tr><td>F-WEBGUI: Blazor Server head</td><td>P1</td><td>Withdrawn</td><td>—</td><td>2026-07-09 owner decision; was Done/Verified; decommission under REQ-FN-034</td></tr>
+        <tr><td>F-TUI: Terminal TUI</td><td>P1</td><td>Withdrawn</td><td>—</td><td>2026-07-09 owner decision; was Done (PTY-verified); decommission under REQ-FN-034</td></tr>
+        <tr><td>F-WSLCHK: WSL check catalog</td><td>P1/P2</td><td>Partial</td><td>90</td><td>Detects Verified (live); auto-fixers built, live install = UAT</td></tr>
+        <tr><td>F-WINCHK: Windows check catalog</td><td>P1/P2</td><td>Partial</td><td>90</td><td>Detects Verified LIVE via winrun bridge; auto-fixers built, live install = UAT</td></tr>
+        <tr><td>F-MACCHK: Mac check catalog</td><td>P1/P2</td><td>Partial</td><td>80</td><td>Detect logic + fixers built + unit-tested; live run needs a Mac session (UAT)</td></tr>
+        <tr><td>F-BRIDGE: Cross-machine probes</td><td>P1</td><td>Done</td><td>100</td><td>HTTP/ping only; Verified</td></tr>
+        <tr><td>F-REPORT: Report export</td><td>P1</td><td>Done</td><td>100</td><td>MD + HTML, secret-free; Verified</td></tr>
+        <tr><td>F-FIX: Fixers / installers &amp; Fix-all</td><td>P2</td><td>Partial</td><td>90</td><td>Download/config-write/fix-all/elevation frameworks Verified (unit); platform + ComfyUI/Postgres live installs = UAT</td></tr>
+        <tr><td>F-ELEV: Elevation, consent &amp; secrets</td><td>P2</td><td>Done</td><td>100</td><td>Visible elevation, presence-only secrets; Verified</td></tr>
+        <tr><td>F-PROFILES: App profiles</td><td>P3</td><td>Partial</td><td>95</td><td>Schema/loader/merge + AppStudio+TrStudio + appium-block writer Verified; ComfyUI/Postgres install = UAT</td></tr>
+        <tr><td>F-MACRUN: Mac app-runner role</td><td>P3</td><td>Partial</td><td>85</td><td>Role aggregation Verified; Catalyst build fixer built, runs on a Mac (UAT)</td></tr>
+        <tr><td>F-MAUIHEAD: MAUI head, logging &amp; distribution</td><td>P4/P6</td><td>Partial</td><td>95</td><td>MAUI Windows build+manifest+boot-persist done, visual render = UAT; <strong>decommission (BRD-54/REQ-FN-034) + Serilog file logging (BRD-55/REQ-NFR-007) Verified 2026-07-09</strong>; guide re-verified (BRD-45/FN-031); Catalyst build = Mac UAT</td></tr>
+        <tr><td>F-AGENT: --check --json agent mode</td><td>P5</td><td>Withdrawn</td><td>—</td><td>2026-07-09 owner decision (went with the CLI head); was Done/Verified; decommission under REQ-FN-034</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Legend:</strong> <strong>Done</strong> = shipped &amp; working (all its REQ Verified) · <strong>Partial</strong> = built, but some sub-features await UAT on an external host · <strong>In progress</strong> = actively being built · <strong>Planned</strong> = not started.</p>
+
+    <h2 id="stakeholders-users">5. Stakeholders / users<a class="anchor-link" href="#stakeholders-users">#</a></h2>
+
+    <p>Same person today (the owner), but four distinct <strong>machine roles</strong> — selected on first run, changeable, and a machine can hold several (the Mac is typically <em>device host + app runner</em>). A future framework user who isn't the owner is the second persona: TrSetup is their only realistic path through the setup.</p>
+
+    <table>
+      <thead><tr><th>Role</th><th>Machine</th><th>What TrSetup checks/fixes there</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Agent host (WSL)</strong></td><td>WSL distro on the Windows box</td><td>§0 bootstrap (apt libs, winrun, PATH), Playwright, .NET SDK, reachability of the other roles, per-app WSL-side needs</td></tr>
+        <tr><td><strong>Device host (Windows)</strong></td><td>The Windows side of the same box</td><td><code>.wslconfig</code> mirrored networking, Android SDK + AVD, Node/npm, Appium + uiautomator2, <code>start-android-verify.ps1</code>, MAUI workload, per-app Windows-side needs</td></tr>
+        <tr><td><strong>Device host (Mac)</strong></td><td>LAN Mac</td><td>Xcode CLT presence, .NET SDK + MAUI workload, Node/npm, Appium + xcuitest + mac2, Appium service on <code>0.0.0.0:4723</code>, firewall/LAN reachability</td></tr>
+        <tr><td><strong>App runner (Mac)</strong></td><td>Same LAN Mac</td><td>Everything needed to <strong>build and run the portfolio apps locally</strong> per the selected app's profile: .NET SDK + workloads, Xcode, git, private NuGet feed auth, Postgres+PgVector, ffmpeg, Python + ComfyUI, app config keys — then the one-command Mac build of the app itself</td></tr>
+      </tbody>
+    </table>
+
+    <p>Native macOS / native Windows / native Linux dev (WORKFLOW §16) is the same check catalog with the WSL-bridge items dropped; the role picker covers it ("I develop natively on this machine").</p>
+
+    <h2 id="context-diagram">6. Context diagram<a class="anchor-link" href="#context-diagram">#</a></h2>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart LR
+  Owner(["Owner / framework user"]) --> TS["TrSetup<br/>(MAUI desktop app)"]
+  TS --> Machine["This machine<br/>(detect + install + configure)"]
+  TS -->|"HTTP /status probes"| WinAppium["Windows-host Appium"]
+  TS -->|"HTTP /status probes"| MacAppium["LAN Mac Appium"]
+  TS -->|"pinned downloads"| Sources["Official installer sources<br/>(dotnet, nodejs.org, Google Android,<br/>ComfyUI releases, winget / brew)"]
+  TS --> Profiles["App profiles<br/>(built-in + .tfcore/trsetup-profile.json)"]
+  TS --> Rep["TrSetup-Report-host.md / .html"]
+  Rep --> Claude["Claude session<br/>(human/AI diagnosis)"]</pre>
+    </div>
+
+    <h2 id="user-journey-primary-use-case">7. User journey — primary use case<a class="anchor-link" href="#user-journey-primary-use-case">#</a></h2>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">sequenceDiagram
+  actor U as Owner
+  participant T as "TrSetup board"
+  participant E as "Check engine"
+  participant X as "Fixer"
+  U->>T: open TrSetup (MAUI desktop app)
+  T->>E: detect sweep for my roles + selected app
+  E-->>T: board — 5 green, 1 amber, 2 red
+  U->>T: click red row "MAUI workload not installed"
+  T-->>U: detail — why it's needed, evidence, fix preview
+  U->>T: click Fix (consent to the shown command)
+  T->>X: dotnet workload install maui
+  X-->>T: output + exit code, re-detect → green
+  U->>T: Fix all (remaining), then Re-check all
+  T-->>U: all green — machine ready
+  U->>T: Export report (optional, for a Claude session)</pre>
+    </div>
+
+    <h2 id="component-sketch">8. Component sketch<a class="anchor-link" href="#component-sketch">#</a></h2>
+
+    <p><em>Scope change 2026-07-09: previously three executable heads (<code>TrSetup</code>, <code>TrSetup.Web</code>, <code>TrSetup.Cli</code>); the Web and Cli heads are withdrawn (REQ-FN-034) — one head remains.</em></p>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart TB
+  A["TrSetup — MAUI Blazor Hybrid<br/>(Windows unpackaged exe + Mac Catalyst)"]
+  UI["TrSetupUI — Razor Class Library<br/>(all screens, TrBlazeUI)"]
+  Core["TrSetup.Core — UI-free engine<br/>(checks, fixers, profiles, runner, report)"]
+  A --> UI
+  UI --> Core</pre>
+    </div>
+
+    <h2 id="feature-catalog">9. Feature catalog<a class="anchor-link" href="#feature-catalog">#</a></h2>
+
+    <h3 id="f-engine-check-engine-detect-preview-fix-re-verify">F-ENGINE: Check engine (Detect → Preview → Fix → Re-verify)<a class="anchor-link" href="#f-engine-check-engine-detect-preview-fix-re-verify">#</a></h3>
+
+    <p><strong>Personas:</strong> all roles · <strong>Phase:</strong> P1</p>
+
+    <p>Every item on the board is a <strong>Check</strong> implementing one contract. The engine enumerates the checks applicable to this machine's roles and the selected app, runs detect sweeps, and exposes one observable board model that every head renders. This is the product's spine: the GUI is a thin renderer over it <em>(originally the TUI and <code>--json</code> heads were too — withdrawn 2026-07-09)</em>.</p>
+
+<pre><code>Check
+├── Id, Title, Category, Roles (which machine roles it applies to)
+├── Severity        Required | Recommended | Optional
+├── DetectAsync()   → Pass | Warn | Fail | NotApplicable   (+ evidence text)
+├── Explain         what it is, why it's needed, doc link (WORKFLOW § anchor)
+├── FixAsync()?     null = manual-only; otherwise the scripted install/remediation
+├── FixPreview      the literal command(s)/download Fix will run — always shown first
+└── VerifyAsync()   re-detect after fix (Fix isn't done until Detect passes)</code></pre>
+
+    <p><strong>Workflow:</strong></p>
+    <ol>
+      <li>Enumerate checks for (machine roles ∩ selected app profile).</li>
+      <li><code>DetectAsync()</code> each → Pass / Warn / Fail / NotApplicable + evidence text.</li>
+      <li>On Fix: show <code>FixPreview</code> → consent → <code>FixAsync()</code> → <code>VerifyAsync()</code> (re-detect).</li>
+      <li>A fix that doesn't re-detect green is reported <strong>failed with the raw output attached</strong> — never "assume fixed".</li>
+      <li>Every run's exact command line, stdout/stderr and exit code are captured for the detail pane — TrSetup is also <em>teaching</em> the user what the setup actually is.</li>
+    </ol>
+
+    <p><strong>Requirements:</strong> BRD-1..BRD-5 (see §10)</p>
+
+    <h3 id="f-roles-machine-roles-first-run-role-picker">F-ROLES: Machine roles &amp; first-run role picker<a class="anchor-link" href="#f-roles-machine-roles-first-run-role-picker">#</a></h3>
+
+    <p><strong>Personas:</strong> all · <strong>Phase:</strong> P1</p>
+
+    <p>On first run the user selects this machine's role(s) — changeable later, multiple allowed (the Mac is typically <em>device host + app runner</em>). The role set plus the selected app decide which checks appear on the board. A "I develop natively on this machine" variant drops the WSL-bridge items (WORKFLOW §16).</p>
+
+    <p><em>Added 2026-07-09 (BRD-56):</em> a <strong>Settings/Configuration screen</strong> (<code>/settings</code>) brings the withdrawn CLI's configuration surface (<code>trsetup config</code>, <code>--roles/--app/--mac-ip</code>) into the MAUI app: edit roles (reusing the role-card pattern), change the selected app, edit named endpoint values (<code>TrSetupSettings.Endpoints</code> — today the LAN Mac IP; address-only, never secrets), see the settings-file path, and view a read-only profile-details pane for the selected app (requirement rows + whether each comes from the built-in profile or a <code>.tfcore/trsetup-profile.json</code> override). Checklist REQ-UI-006, Phase 6; control map in <code>docs/TrSetup-UIDesign.md</code>.</p>
+
+    <table>
+      <thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Role picker</td><td><code>/setup</code> (auto-shown on first run)</td><td>Select role(s) + default app; explains each role in one line</td></tr>
+        <tr><td>Settings / Configuration</td><td><code>/settings</code></td><td>Edit roles, app, endpoint values (Mac IP); settings-file path; read-only profile details (BRD-56, planned)</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Workflow:</strong> 1. First launch detects no saved settings → role picker. 2. User ticks role(s), picks default app. 3. Saved to the local JSON settings file. 4. Board loads scoped to those roles; header selectors allow changing any time.</p>
+
+    <p><strong>Requirements:</strong> BRD-6..BRD-8, BRD-56</p>
+
+    <h3 id="f-board-status-board-dashboard-detail-pane">F-BOARD: Status board dashboard &amp; detail pane<a class="anchor-link" href="#f-board-status-board-dashboard-detail-pane">#</a></h3>
+
+    <p><strong>Personas:</strong> all · <strong>Phase:</strong> P1</p>
+
+    <p>Single-window dashboard (TrBlazeUI, same light/dark discipline as the doc shell). Checks are grouped (Framework core / Bridges / &lt;App&gt; profile / Build &amp; run), each group showing ✓/⚠/✗ counts and a <strong>Fix all</strong>; each failing row has <strong>Preview</strong> and <strong>Fix</strong> (or <strong>Open guide</strong> for manual-only items). Clicking a row opens the detail pane: <strong>Explain</strong> (what/why + WORKFLOW §/guide link), <strong>Detect evidence</strong>, <strong>Fix preview</strong>, and the <strong>last run output</strong> (command, stdout/stderr, exit code).</p>
+
+    <p>The plan's UX sketch (carried forward verbatim):</p>
+
+<pre><code>┌─ TrSetup ──────────────────────────── roles: [Mac device host + app runner ▾]  app: [AppStudio ▾] ─┐
+│  ● Framework core           5 ✓   1 ⚠   1 ✗          [Fix all]                                     │
+│    ✗ Appium mac2 driver missing              [Preview] [Fix]                                       │
+│  ● Bridges (cross-machine)   1 ✓   1 ✗                                                             │
+│  ● AppStudio profile         4 ✓   2 ✗               [Fix all]                                     │
+│    ✗ MAUI workload not installed             [Preview] [Fix]                                       │
+│    ✗ GitHub Packages feed: 401                [Open guide]                                         │
+│  ● Build &amp; run               [Build AppStudio for Mac (Catalyst)]                                  │
+│                                                       [Re-check all]  [Export report]              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre>
+
+    <table>
+      <thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Board dashboard</td><td><code>/</code></td><td>Grouped red/amber/green board; role + app selectors; Fix all / Re-check all / Export report</td></tr>
+        <tr><td>Check detail</td><td>sheet over <code>/</code> (deep link <code>/check/{id}</code>)</td><td>Explain, evidence, fix preview, last run output</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Workflow:</strong> 1. Detect sweep renders groups. 2. Row click → detail sheet. 3. Preview shows the literal commands. 4. Fix runs with consent; row updates live. 5. Re-check all re-runs detects only.</p>
+
+    <p><strong>Requirements:</strong> BRD-9..BRD-13</p>
+
+    <h3 id="f-webgui-blazor-server-gui-head-wsl-linux-withdrawn-2026-07-09">F-WEBGUI: Blazor Server GUI head (WSL / Linux) — WITHDRAWN 2026-07-09<a class="anchor-link" href="#f-webgui-blazor-server-gui-head-wsl-linux-withdrawn-2026-07-09">#</a></h3>
+
+    <p><strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> — feature text retained below for history.</p>
+
+    <p><strong>Personas:</strong> agent host (WSL), native Linux · <strong>Phase:</strong> P1</p>
+
+    <p><code>trsetup gui</code> in WSL starts Kestrel bound to localhost and opens <code>http://localhost:5999</code> in the <strong>Windows</strong> browser via mirrored networking — deliberately dogfooding the same bridge it checks. Native Linux gets the same head in the local browser.</p>
+
+    <table>
+      <thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Same RCL screens as F-BOARD</td><td><code>http://localhost:5999/</code></td><td>Identical board; only the host differs</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Requirements:</strong> BRD-14</p>
+
+    <h3 id="f-tui-terminal-tui-fallback-withdrawn-2026-07-09">F-TUI: Terminal TUI fallback — WITHDRAWN 2026-07-09<a class="anchor-link" href="#f-tui-terminal-tui-fallback-withdrawn-2026-07-09">#</a></h3>
+
+    <p><strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> — feature text retained below for history.</p>
+
+    <p><strong>Personas:</strong> agent host (WSL), SSH/headless use · <strong>Phase:</strong> P1</p>
+
+    <p><code>trsetup</code> with no args runs the Spectre.Console TUI — the same board (grouped checks, statuses, evidence) rendered in the terminal, arrow-key selection, <code>f</code> fix, <code>a</code> fix-all, <code>r</code> re-check, <code>e</code> export report. Works over SSH and when no browser is reachable. Same <code>TrSetup.Core</code> engine — the TUI is a thin renderer, never a second implementation (locked decision).</p>
+
+    <p><strong>Requirements:</strong> BRD-15..BRD-16</p>
+
+    <h3 id="f-wslchk-check-catalog-wsl-agent-host">F-WSLCHK: Check catalog — WSL agent host<a class="anchor-link" href="#f-wslchk-check-catalog-wsl-agent-host">#</a></h3>
+
+    <p><strong>Personas:</strong> agent host (WSL) · <strong>Phase:</strong> P1 (detects) / P2 (fixes)</p>
+
+    <p>The framework-core catalog for the WSL role (plan §6.1, carried forward verbatim):</p>
+
+    <table>
+      <thead><tr><th>Check</th><th>Detect</th><th>Auto-fix</th></tr></thead>
+      <tbody>
+        <tr><td>.NET SDK present (9/10 as configured)</td><td><code>dotnet --list-sdks</code></td><td>install via dotnet-install script ✔</td></tr>
+        <tr><td>Headless-Chromium apt libs (§0 list)</td><td><code>dpkg -s</code> each</td><td><code>sudo apt-get install -y …</code> ✔</td></tr>
+        <tr><td><code>~/bin/winrun</code> bridge + executable + on PATH</td><td>file + <code>grep .bashrc</code></td><td>write file + PATH line ✔</td></tr>
+        <tr><td>Node.js present</td><td><code>node --version</code></td><td>install LTS ✔</td></tr>
+        <tr><td>Playwright CLI + headless Chromium</td><td><code>npx playwright --version</code> / browsers dir</td><td><code>npm i -D playwright &amp;&amp; npx playwright install chromium</code> ✔</td></tr>
+        <tr><td>Mirrored networking active (WSL side)</td><td>probe a Windows-host port</td><td>manual (points at Windows-role fix)</td></tr>
+        <tr><td>Windows-host Appium reachable</td><td><code>GET http://localhost:4723/status</code></td><td>manual (run TrSetup on Windows)</td></tr>
+        <tr><td>Mac Appium reachable (if app ships iOS/Catalyst)</td><td><code>GET http://&lt;mac-ip&gt;:4723/status</code></td><td>manual (run TrSetup on Mac)</td></tr>
+        <tr><td><code>git</code> present (for the owner's manual use)</td><td><code>git --version</code></td><td><code>apt-get install git</code> ✔</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Requirements:</strong> BRD-17 (detects), BRD-18 (fixes, P2)</p>
+
+    <h3 id="f-winchk-check-catalog-windows-device-host">F-WINCHK: Check catalog — Windows device host<a class="anchor-link" href="#f-winchk-check-catalog-windows-device-host">#</a></h3>
+
+    <p><strong>Personas:</strong> device host (Windows) · <strong>Phase:</strong> P1 (detects) / P2 (fixes)</p>
+
+    <p>Plan §6.2, carried forward verbatim:</p>
+
+    <table>
+      <thead><tr><th>Check</th><th>Detect</th><th>Auto-fix</th></tr></thead>
+      <tbody>
+        <tr><td><code>.wslconfig</code> has <code>networkingMode=mirrored</code></td><td>parse <code>%UserProfile%\.wslconfig</code></td><td>append/patch + prompt <code>wsl --shutdown</code> ✔</td></tr>
+        <tr><td>Android SDK + <code>sdkmanager</code>/<code>avdmanager</code></td><td>probe standard SDK locations</td><td><strong>download cmdline-tools + install SDK</strong> ✔</td></tr>
+        <tr><td>API-34 system image installed</td><td><code>sdkmanager --list_installed</code></td><td><code>sdkmanager "system-images;android-34;…"</code> ✔</td></tr>
+        <tr><td><code>Pixel_API_34</code> AVD exists</td><td><code>avdmanager list avd</code></td><td><code>avdmanager create avd …</code> ✔</td></tr>
+        <tr><td>Node + npm</td><td><code>node --version</code></td><td>install LTS (winget/download) ✔</td></tr>
+        <tr><td>Appium installed + <code>uiautomator2</code> driver</td><td><code>appium --version</code>, <code>appium driver list --installed</code></td><td><code>npm i -g appium &amp;&amp; appium driver install uiautomator2</code> ✔</td></tr>
+        <tr><td><code>start-android-verify.ps1</code> session helper deployed</td><td>file check</td><td>write from embedded template ✔</td></tr>
+        <tr><td>Appium answers on <code>:4723</code> (session test)</td><td>boot helper → <code>/status</code></td><td>run the helper ✔</td></tr>
+        <tr><td>MAUI workload</td><td><code>dotnet workload list</code></td><td><code>dotnet workload install maui</code> ✔</td></tr>
+        <tr><td>JDK for Android builds</td><td><code>java -version</code> / JAVA_HOME</td><td>install Temurin ✔</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Requirements:</strong> BRD-19 (detects), BRD-20 (fixes, P2)</p>
+
+    <h3 id="f-macchk-check-catalog-mac-device-host">F-MACCHK: Check catalog — Mac device host<a class="anchor-link" href="#f-macchk-check-catalog-mac-device-host">#</a></h3>
+
+    <p><strong>Personas:</strong> device host (Mac) · <strong>Phase:</strong> P1 (detects) / P2 (fixes)</p>
+
+    <p>Plan §6.3, carried forward verbatim:</p>
+
+    <table>
+      <thead><tr><th>Check</th><th>Detect</th><th>Auto-fix</th></tr></thead>
+      <tbody>
+        <tr><td>Xcode / Command-Line Tools</td><td><code>xcode-select -p</code></td><td>CLT: <code>xcode-select --install</code> ✔; full Xcode: manual (App Store — the one genuine manual step)</td></tr>
+        <tr><td>.NET SDK + MAUI workload</td><td><code>dotnet workload list</code></td><td>install SDK + <code>dotnet workload install maui</code> ✔</td></tr>
+        <tr><td>Node + npm</td><td><code>node --version</code></td><td>install LTS ✔</td></tr>
+        <tr><td>Appium + <code>xcuitest</code> + <code>mac2</code> drivers</td><td><code>appium driver list --installed</code></td><td>install ✔</td></tr>
+        <tr><td>Appium serving on <code>0.0.0.0:4723</code> (LaunchAgent, survives reboot)</td><td><code>GET /status</code> from LAN address</td><td>write LaunchAgent plist + load ✔</td></tr>
+        <tr><td>Stable IP / hostname advertised</td><td>current IP vs configured endpoint</td><td>manual guidance (DHCP reservation)</td></tr>
+        <tr><td>iOS Simulator runtime present</td><td><code>xcrun simctl list</code></td><td><code>xcodebuild -downloadPlatform iOS</code> ✔</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Requirements:</strong> BRD-21 (detects), BRD-22 (fixes, P2)</p>
+
+    <h3 id="f-bridge-cross-machine-reachability-probes">F-BRIDGE: Cross-machine reachability probes<a class="anchor-link" href="#f-bridge-cross-machine-reachability-probes">#</a></h3>
+
+    <p><strong>Personas:</strong> agent host (WSL) primarily · <strong>Phase:</strong> P1</p>
+
+    <p>Checks that depend on another machine (e.g. "Mac Appium reachable") are plain HTTP/ping probes — TrSetup <strong>never remote-executes</strong>; you run TrSetup <em>on</em> the other machine to fix its items. A failing probe's guidance names the owning machine role.</p>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart LR
+  WSL["WSL (agent host)"] -->|"port probe — mirrored networking"| Win["Windows host"]
+  WSL -->|"GET localhost:4723/status"| Win
+  WSL -->|"GET mac-ip:4723/status"| Mac["LAN Mac"]</pre>
+    </div>
+
+    <p><strong>Requirements:</strong> BRD-23</p>
+
+    <h3 id="f-report-report-export">F-REPORT: Report export<a class="anchor-link" href="#f-report-report-export">#</a></h3>
+
+    <p><strong>Personas:</strong> all · <strong>Phase:</strong> P1</p>
+
+    <p>One click/keystroke exports the full board — groups, statuses, evidence, last-run outputs — to <code>TrSetup-Report-&lt;host&gt;.md</code> (+ HTML via the shared doc shell), safe to hand to a Claude session when something needs human/AI diagnosis. Secret values never appear (presence-only stance).</p>
+
+    <table>
+      <thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Report preview</td><td><code>/report</code></td><td>Rendered report + Save/Copy actions</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Requirements:</strong> BRD-24..BRD-25</p>
+
+    <h3 id="f-fix-fixers-installers-fix-all">F-FIX: Fixers / installers &amp; Fix-all<a class="anchor-link" href="#f-fix-fixers-installers-fix-all">#</a></h3>
+
+    <p><strong>Personas:</strong> all roles · <strong>Phase:</strong> P2</p>
+
+    <p><strong>Fix means install</strong> (owner decision 2026-07-05). Fixers download official installers/archives (dotnet-install scripts, Node LTS, Android cmdline-tools, ComfyUI release + its own isolated Python, Homebrew/winget where already present) with checksums where published, into <strong>TrSetup-managed locations that never collide with system installs</strong> (the TrStudio isolated-Python discipline, generalized). Running any fix twice is safe; existing user config is respected, never rewritten. <strong>Fix all</strong> runs fixes sequentially in dependency order (Node before Appium, SDK before AVD, Postgres before PgVector…), stopping at the first consent/elevation gate.</p>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart TB
+  Start(["Fix all"]) --> Order["Dependency-order failing checks"]
+  Order --> Next{"next check?"}
+  Next -->|"none"| Recheck["Re-check all"]
+  Next -->|"yes"| Preview["Show FixPreview (exact commands / URLs)"]
+  Preview -->|"consent"| Run["Download + install / write config"]
+  Preview -->|"declined"| Stop(["Run halted"])
+  Run --> Ver{"re-detect green?"}
+  Ver -->|"yes"| Next
+  Ver -->|"no"| Failed["FAILED + raw output attached"]
+  Failed --> Next
+  Recheck --> Fin(["Board updated"])</pre>
+    </div>
+
+    <table>
+      <thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Fix-all run view</td><td><code>/fix-run</code> (or modal over <code>/</code>)</td><td>Sequential progress, per-step output, consent gates</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Requirements:</strong> BRD-26..BRD-29</p>
+
+    <h3 id="f-elev-elevation-consent-secrets-stance">F-ELEV: Elevation, consent &amp; secrets stance<a class="anchor-link" href="#f-elev-elevation-consent-secrets-stance">#</a></h3>
+
+    <p><strong>Personas:</strong> all · <strong>Phase:</strong> P2 (stance applies from P1)</p>
+
+    <p>Consent per elevation: sudo/admin actions (apt-get, <code>.wslconfig</code>, LaunchAgent, service installs) always show the exact command and run only on click; on Windows, UAC-elevated steps run in a visible child process; WSL fixes needing sudo can hand off to an interactive terminal (the app prints the one command to paste). No stored sudo passwords. Secrets: <strong>presence-only</strong> checks — a key/token is present and non-empty; values never stored, displayed, logged, transmitted, or exported. Network: outbound only to pinned installer sources + user-configured endpoints; no telemetry.</p>
+
+    <p><strong>Requirements:</strong> BRD-30..BRD-32</p>
+
+    <h3 id="f-profiles-app-profiles-declarative">F-PROFILES: App profiles (declarative)<a class="anchor-link" href="#f-profiles-app-profiles-declarative">#</a></h3>
+
+    <p><strong>Personas:</strong> device hosts + app runner · <strong>Phase:</strong> P3</p>
+
+    <p>A profile is a <strong>declarative file</strong> (<code>trsetup-profile.json</code>) of requirement <em>instances</em> of generic check types: <code>sdk</code>, <code>workload</code>, <code>cli-tool</code>, <code>service</code>, <code>endpoint</code>, <code>nuget-feed</code>, <code>env-secret</code>, <code>disk-space</code>, <code>appium-head</code>, <code>runtime-install</code> (e.g. ComfyUI). Built-in profiles ship for the known apps; an app repo may carry <code>.tfcore/trsetup-profile.json</code> which <strong>overrides the built-in</strong> (locked decision: both, app repo wins). New app = new profile, <strong>no tool code</strong>. Each requirement is tagged with the roles it applies to — so one profile drives both "build it on Windows" and "run it on the Mac".</p>
+
+    <p><strong>AppStudio profile</strong> (from <code>AppStudio-BRD.md</code> §12):</p>
+
+    <table>
+      <thead><tr><th>Requirement</th><th>Check type</th><th>Roles</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>.NET 10 SDK</td><td><code>sdk</code></td><td>Win, Mac-runner</td><td></td></tr>
+        <tr><td>MAUI workload</td><td><code>workload</code></td><td>Win, Mac-runner</td><td>Windows head unpackaged; Mac Catalyst head builds on the Mac</td></tr>
+        <tr><td><code>dotnet</code> + <code>git</code> on PATH</td><td><code>cli-tool</code></td><td>Win, Mac-runner</td><td>the IDE shells out to both at runtime</td></tr>
+        <tr><td>Xcode</td><td><code>cli-tool</code></td><td>Mac-runner</td><td>Catalyst build prerequisite</td></tr>
+        <tr><td>techierathore GitHub Packages feed usable</td><td><code>nuget-feed</code></td><td>Win, Mac-runner</td><td>TrBlazeUI is private; validates NuGet source + PAT (<code>read:packages</code>) authenticates</td></tr>
+        <tr><td>App Manager API reachable</td><td><code>endpoint</code></td><td>Win, Mac-runner</td><td>dev <code>https://localhost:5101/</code>, prod <code>https://api.appmanager.com</code></td></tr>
+        <tr><td>AppManager applicationId/API key configured</td><td><code>env-secret</code></td><td>Win, Mac-runner</td><td>presence-only</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>TrStudio profile</strong> (from <code>TrStudio-BRD.md</code> §12; heads as-built are Blazor Server web apps):</p>
+
+    <table>
+      <thead><tr><th>Requirement</th><th>Check type</th><th>Roles</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>.NET 10 SDK (or none if self-contained publish)</td><td><code>sdk</code></td><td>Win, Mac-runner</td><td></td></tr>
+        <tr><td>PostgreSQL running + <strong>PgVector extension</strong></td><td><code>service</code></td><td>Win, Mac-runner</td><td>app DB + Hangfire queue + RAG bible; auto-install (winget/brew + <code>CREATE EXTENSION vector</code>) ✔</td></tr>
+        <tr><td><code>ffmpeg</code> on PATH</td><td><code>cli-tool</code></td><td>Win, Mac-runner</td><td>auto-install ✔</td></tr>
+        <tr><td>Isolated Python env + <strong>ComfyUI</strong> installed</td><td><code>runtime-install</code></td><td>Win, Mac-runner</td><td><strong>TrSetup installs it</strong> (owner decision 2026-07-05); TrStudioAdmin manages models/workflows on top</td></tr>
+        <tr><td>Disk space for models (configurable floor)</td><td><code>disk-space</code></td><td>Mac-runner</td><td>warn-level</td></tr>
+        <tr><td>GitHub PAT for TechieRag NuGet</td><td><code>nuget-feed</code></td><td>Win</td><td>build-time only</td></tr>
+        <tr><td><code>RunPod:ApiKey</code> / HeyGen key / AppManager key present</td><td><code>env-secret</code></td><td>Win, Mac-runner</td><td>presence-only (locked)</td></tr>
+        <tr><td>AppManager endpoint reachable</td><td><code>endpoint</code></td><td>Win, Mac-runner</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Framework profile (always on):</strong> the F-WSLCHK/F-WINCHK/F-MACCHK core for the machine's roles, plus — when run inside an app repo — offering to write the <code>core-config.yaml → runtimeVerification.appium</code> block (WORKFLOW §0b step 4) from the endpoints it just verified, and <code>curl</code>-verifying each registered head.</p>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart TB
+  Sel["App selected"] --> BI["Built-in profile"]
+  BI --> Q{"repo has .tfcore/trsetup-profile.json?"}
+  Q -->|"yes — APP REPO WINS"| MR["Merged requirement set"]
+  Q -->|"no"| MR
+  MR --> RF["Filter by machine roles"]
+  RF --> Rows["Board rows (generic check types)"]</pre>
+    </div>
+
+    <p><strong>Requirements:</strong> BRD-33..BRD-40</p>
+
+    <h3 id="f-macrun-mac-app-runner-role-build-for-mac-fixer">F-MACRUN: Mac app-runner role &amp; Build-for-Mac fixer<a class="anchor-link" href="#f-macrun-mac-app-runner-role-build-for-mac-fixer">#</a></h3>
+
+    <p><strong>Personas:</strong> app runner (Mac) · <strong>Phase:</strong> P3</p>
+
+    <p>The Mac app-runner role prepares the Mac to <strong>run the portfolio apps</strong>, not just host Appium: everything in the selected app's profile (SDK + workloads, Xcode, git, NuGet feed auth, Postgres+PgVector, ffmpeg, Python + ComfyUI, config keys), then offers <strong>"Build &amp; install &lt;App&gt; for Mac (Catalyst)"</strong> as a one-click fixer (<code>dotnet build -f net10.0-maccatalyst -c Release</code>) once prerequisites are green. This automates the Mac path of every app's <code>&lt;APP&gt;-BuildAndRun-Guide.md</code>, making each guide's prerequisites section a single "run TrSetup, click Fix all" line.</p>
+
+    <p>The honest constraint (plan §6.5, carried forward): a Windows <code>.exe</code> can never execute on macOS, and Visual Studio on Windows <strong>cannot build a Mac Catalyst app</strong> — so "build on Windows, copy to Mac" splits into two real paths:</p>
+
+    <table>
+      <thead><tr><th>App head type</th><th>Windows side (Visual Studio)</th><th>Mac side</th></tr></thead>
+      <tbody>
+        <tr><td><strong>MAUI Blazor Hybrid</strong> (AppStudio, TrSetup)</td><td>Build/publish the <strong>Windows unpackaged exe</strong> — for the Windows machine only</td><td>Build the <strong>Mac Catalyst <code>.app</code> on the Mac</strong> — one command, Xcode + MAUI workload present. <strong>TrSetup's Mac app-runner role automates this</strong></td></tr>
+        <tr><td><strong>Blazor Server web</strong> (TrStudio×3; <em>TrSetup.Web withdrawn 2026-07-09</em>)</td><td><code>dotnet publish -r osx-arm64 --self-contained</code> <strong>on Windows</strong> → a genuine "copy to the Mac and run" folder (no .NET needed on the Mac)</td><td>copy → <code>chmod +x</code> → run → open in browser</td></tr>
+      </tbody>
+    </table>
+
+    <p><em>Scope change 2026-07-09: the bare-Mac bootstrap vehicle was the self-contained <code>TrSetup.Cli</code> publish — withdrawn with the CLI head (REQ-FN-034). The Mac now gets the <code>TrSetup</code> Mac Catalyst build (built once on a prepared Mac, then distributed) per <code>TrSetup-BuildAndRun-Guide.md</code>.</em></p>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">sequenceDiagram
+  participant W as "Windows box"
+  participant M as "Bare Mac"
+  W->>M: install TrSetup (Mac Catalyst build)
+  M->>M: TrSetup — Fix all (installs Xcode CLT, .NET SDK,<br/>MAUI workload, Node, Appium, Postgres, ComfyUI…)
+  M->>M: fixer: "Build AppStudio for Mac (Catalyst)"
+  M-->>W: Mac ready — apps runnable, Appium served on 0.0.0.0:4723</pre>
+    </div>
+
+    <p><strong>Requirements:</strong> BRD-41..BRD-43</p>
+
+    <h3 id="f-mauihead-maui-blazor-hybrid-head-distribution">F-MAUIHEAD: MAUI Blazor Hybrid head &amp; distribution<a class="anchor-link" href="#f-mauihead-maui-blazor-hybrid-head-distribution">#</a></h3>
+
+    <p><strong>Personas:</strong> device host (Windows), app runner (Mac) · <strong>Phase:</strong> P4</p>
+
+    <p><code>TrSetup</code> ships the native GUI: Windows <strong>unpackaged exe</strong> (<code>WindowsPackageType=None</code>, AppStudio's host model) and <strong>Mac Catalyst via MAUI</strong> (locked decision — one codebase; ad-hoc signing is fine for personal LAN use). Ships with <code>TrSetup-BuildAndRun-Guide.md</code> firmed up (concrete paths/ports) and the distribution scripts (self-contained publishes for Cli/Web per RID).</p>
+
+    <p><em>Scope change 2026-07-09: this feature stays ACTIVE — <code>TrSetup</code> is now the product's <strong>only</strong> head (BRD-44, plus decommission BRD-54 and Serilog observability BRD-55). Only the Cli/Web distribution-scripts portion is withdrawn with those heads (BRD-45; see REQ-FN-034).</em></p>
+
+    <p><strong>Requirements:</strong> BRD-44..BRD-45</p>
+
+    <h3 id="f-agent-cli-agent-mode-check-json-withdrawn-2026-07-09">F-AGENT: CLI / agent mode (--check --json) — WITHDRAWN 2026-07-09<a class="anchor-link" href="#f-agent-cli-agent-mode-check-json-withdrawn-2026-07-09">#</a></h3>
+
+    <p><strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> — went with the CLI head; feature text retained below for history.</p>
+
+    <p><strong>Personas:</strong> AI agents / CI · <strong>Phase:</strong> P5 (stretch)</p>
+
+    <p><code>trsetup --check --json</code> emits the machine-readable board for agent/CI pre-flight — letting the TechieFlow verifier confirm "environment pre-flight ran green" before a verify pass (possible verify-phase §0 hook).</p>
+
+    <p><strong>Requirements:</strong> BRD-46..BRD-47</p>
+
+    <h2 id="functional-requirements-brd-ledger">10. Functional requirements (BRD ledger)<a class="anchor-link" href="#functional-requirements-brd-ledger">#</a></h2>
+
+<!-- One line per discrete capability; each tagged (F-CODE). Append-only IDs. -->
+
+    <ul>
+      <li><strong>BRD-1</strong> — System shall model every board item as a <code>Check</code> implementing the plan-§5 contract: <code>Id, Title, Category, Roles, Severity, DetectAsync, Explain, FixAsync?, FixPreview, VerifyAsync</code>. <em>(F-ENGINE)</em> <!-- from: TrSetup-Plan.md §5 --></li>
+      <li><strong>BRD-2</strong> — <code>DetectAsync</code> shall return Pass / Warn / Fail / NotApplicable plus evidence text; detection never assumes. <em>(F-ENGINE)</em> <!-- from: TrSetup-Plan.md §5 --></li>
+      <li><strong>BRD-3</strong> — Every fix shall follow Detect → Preview → Fix → Re-verify; a fix that doesn't re-detect green is reported failed with the raw output attached. <em>(F-ENGINE)</em> <!-- from: TrSetup-Plan.md §5 --></li>
+      <li><strong>BRD-4</strong> — System shall capture the exact command line, stdout/stderr, and exit code of every detect/fix run for the detail pane. <em>(F-ENGINE)</em> <!-- from: TrSetup-Plan.md §5 --></li>
+      <li><strong>BRD-5</strong> — System shall scope the board to (machine roles ∩ selected app profile), marking out-of-scope checks NotApplicable. <em>(F-ENGINE)</em></li>
+      <li><strong>BRD-6</strong> — User can select this machine's role(s) on first run and change them later; a machine can hold several roles. <em>(F-ROLES)</em> <!-- from: TrSetup-Plan.md §3 --></li>
+      <li><strong>BRD-7</strong> — System shall support the four roles: Agent host (WSL), Device host (Windows), Device host (Mac), App runner (Mac). <em>(F-ROLES)</em> <!-- from: TrSetup-Plan.md §3 --></li>
+      <li><strong>BRD-8</strong> — User can pick "I develop natively on this machine", which applies the same catalog with WSL-bridge items dropped. <em>(F-ROLES)</em> <!-- from: TrSetup-Plan.md §3 --></li>
+      <li><strong>BRD-9</strong> — User can see a grouped red/amber/green board of every applicable check with per-group ✓/⚠/✗ counts. <em>(F-BOARD)</em> <!-- from: TrSetup-Plan.md §8 --></li>
+      <li><strong>BRD-10</strong> — User can switch machine roles and the selected app from the board header. <em>(F-BOARD)</em></li>
+      <li><strong>BRD-11</strong> — User can open a per-check detail pane showing Explain (what/why + doc link), detect evidence, fix preview, and last run output. <em>(F-BOARD)</em> <!-- from: TrSetup-Plan.md §8 --></li>
+      <li><strong>BRD-12</strong> — User can re-check a single check or the whole board. <em>(F-BOARD)</em></li>
+      <li><strong>BRD-13</strong> — Failing rows shall offer Preview and Fix; manual-only checks offer guidance ("Open guide") instead of Fix. <em>(F-BOARD)</em></li>
+      <li><strong>BRD-14</strong> — <strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> User can run <code>trsetup gui</code> in WSL/Linux to start the Blazor Server head on <code>localhost:5999</code> and have it open in the Windows browser via mirrored networking. <em>(F-WEBGUI)</em> <!-- from: TrSetup-Plan.md §4 --></li>
+      <li><strong>BRD-15</strong> — <strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> User can run <code>trsetup</code> with no args to get the Spectre.Console TUI rendering the same board (groups, statuses, evidence) in the terminal, including over SSH. <em>(F-TUI)</em> <!-- from: TrSetup-Plan.md §4 --></li>
+      <li><strong>BRD-16</strong> — <strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> TUI shall support arrow-key selection and keys <code>f</code> (fix), <code>a</code> (fix-all), <code>r</code> (re-check), <code>e</code> (export report). <em>(F-TUI)</em> <!-- from: TrSetup-Plan.md §8 --></li>
+      <li><strong>BRD-17</strong> — System shall detect every WSL agent-host catalog item (§9 F-WSLCHK table: .NET SDK, apt Chromium libs, winrun bridge + PATH, Node, Playwright + Chromium, mirrored networking, Windows Appium, Mac Appium, git). <em>(F-WSLCHK)</em> <!-- from: TrSetup-Plan.md §6.1 --></li>
+      <li><strong>BRD-18</strong> — System shall auto-fix every WSL catalog item marked ✔ (SDK via dotnet-install, apt libs, winrun write + PATH line, Node LTS, Playwright install, git). <em>(F-WSLCHK, P2)</em> <!-- from: TrSetup-Plan.md §6.1 --></li>
+      <li><strong>BRD-19</strong> — System shall detect every Windows device-host catalog item (§9 F-WINCHK table: <code>.wslconfig</code> mirrored networking, Android SDK tools, API-34 image, <code>Pixel_API_34</code> AVD, Node/npm, Appium + uiautomator2, <code>start-android-verify.ps1</code>, Appium <code>:4723</code> session, MAUI workload, JDK). <em>(F-WINCHK)</em> <!-- from: TrSetup-Plan.md §6.2 --></li>
+      <li><strong>BRD-20</strong> — System shall auto-fix every Windows catalog item marked ✔ (patch <code>.wslconfig</code> + prompt <code>wsl --shutdown</code>, download cmdline-tools + SDK + image + AVD, Node, Appium + driver, write the ps1 helper from an embedded template, run the helper, MAUI workload, Temurin JDK). <em>(F-WINCHK, P2)</em> <!-- from: TrSetup-Plan.md §6.2 --></li>
+      <li><strong>BRD-21</strong> — System shall detect every Mac device-host catalog item (§9 F-MACCHK table: Xcode/CLT, .NET SDK + MAUI workload, Node, Appium + xcuitest + mac2, Appium LaunchAgent on <code>0.0.0.0:4723</code>, stable IP, iOS Simulator runtime). <em>(F-MACCHK)</em> <!-- from: TrSetup-Plan.md §6.3 --></li>
+      <li><strong>BRD-22</strong> — System shall auto-fix every Mac catalog item marked ✔ (CLT install, SDK + workload, Node, Appium drivers, LaunchAgent plist write + load, <code>-downloadPlatform iOS</code>); full Xcode and DHCP reservation remain manual guidance. <em>(F-MACCHK, P2)</em> <!-- from: TrSetup-Plan.md §6.3 --></li>
+      <li><strong>BRD-23</strong> — Cross-machine checks shall be plain HTTP/ping probes; TrSetup never remote-executes, and a failing probe's guidance names the owning machine role. <em>(F-BRIDGE)</em> <!-- from: TrSetup-Plan.md §5 --></li>
+      <li><strong>BRD-24</strong> — User can export the full board to <code>TrSetup-Report-&lt;host&gt;.md</code> plus an HTML render via the shared doc shell. <em>(F-REPORT)</em> <!-- from: TrSetup-Plan.md §8 --></li>
+      <li><strong>BRD-25</strong> — Exported reports shall contain no secret values and be safe to paste into a Claude session. <em>(F-REPORT)</em> <!-- from: TrSetup-Plan.md §7 --></li>
+      <li><strong>BRD-26</strong> — Fixers shall download and install missing SDKs/tools/runtimes themselves from official sources into TrSetup-managed locations that never collide with system installs. <em>(F-FIX)</em> <!-- from: TrSetup-Plan.md §2, §5 --></li>
+      <li><strong>BRD-27</strong> — Download URLs shall be pinned in the profile/engine, visible in FixPreview, and checksum-verified where the source publishes checksums. <em>(F-FIX)</em> <!-- from: TrSetup-Plan.md §7 --></li>
+      <li><strong>BRD-28</strong> — All fixes shall be idempotent; everything TrSetup writes carries managed marker blocks so re-runs never duplicate and user edits are never clobbered. <em>(F-FIX)</em> <!-- from: TrSetup-Plan.md §5, §7 --></li>
+      <li><strong>BRD-29</strong> — Fix-all shall run fixes sequentially in dependency order (Node before Appium, SDK before AVD, Postgres before PgVector…), stopping at the first consent/elevation gate. <em>(F-FIX)</em> <!-- from: TrSetup-Plan.md §8 --></li>
+      <li><strong>BRD-30</strong> — Every elevated action shall show the exact command and run only on explicit consent — UAC steps in a visible child process; WSL sudo optionally via interactive terminal handoff; no stored passwords. <em>(F-ELEV)</em> <!-- from: TrSetup-Plan.md §7 --></li>
+      <li><strong>BRD-31</strong> — Secret checks shall be presence-only (present and non-empty); values never stored, displayed, logged, transmitted, or exported; paid APIs never probed. <em>(F-ELEV)</em> <!-- from: TrSetup-Plan.md §2, §7 --></li>
+      <li><strong>BRD-32</strong> — Network access shall be outbound-only to pinned installer sources and user-configured endpoints; no telemetry. <em>(F-ELEV)</em> <!-- from: TrSetup-Plan.md §7 --></li>
+      <li><strong>BRD-33</strong> — System shall load declarative profiles (<code>trsetup-profile.json</code>) of requirement instances typed <code>sdk</code>, <code>workload</code>, <code>cli-tool</code>, <code>service</code>, <code>endpoint</code>, <code>nuget-feed</code>, <code>env-secret</code>, <code>disk-space</code>, <code>appium-head</code>, <code>runtime-install</code>. <em>(F-PROFILES)</em> <!-- from: TrSetup-Plan.md §6.4 --></li>
+      <li><strong>BRD-34</strong> — Built-in profiles ship for known apps; an app repo's <code>.tfcore/trsetup-profile.json</code> overrides the built-in — app repo wins. <em>(F-PROFILES)</em> <!-- from: TrSetup-Plan.md §6.4 --></li>
+      <li><strong>BRD-35</strong> — Every profile requirement shall be tagged with the roles it applies to, so one profile drives both "build on Windows" and "run on the Mac". <em>(F-PROFILES)</em> <!-- from: TrSetup-Plan.md §6.4 --></li>
+      <li><strong>BRD-36</strong> — System shall ship the AppStudio built-in profile (§9 F-PROFILES table — SDK, MAUI workload, dotnet+git on PATH, Xcode, techierathore GitHub Packages feed, App Manager API endpoint, AppManager key presence). <em>(F-PROFILES)</em> <!-- from: TrSetup-Plan.md §6.4 --></li>
+      <li><strong>BRD-37</strong> — System shall ship the TrStudio built-in profile (§9 F-PROFILES table — SDK, Postgres + PgVector, ffmpeg, isolated Python + ComfyUI, disk space, TechieRag NuGet PAT, RunPod/HeyGen/AppManager key presence, AppManager endpoint). <em>(F-PROFILES)</em> <!-- from: TrSetup-Plan.md §6.4 --></li>
+      <li><strong>BRD-38</strong> — When run inside an app repo, system shall offer to write the <code>core-config.yaml → runtimeVerification.appium</code> block from the endpoints it just verified, then <code>curl</code>-verify each registered head. <em>(F-PROFILES)</em> <!-- from: TrSetup-Plan.md §6.4 --></li>
+      <li><strong>BRD-39</strong> — System shall install the isolated Python env + ComfyUI itself (<code>runtime-install</code>); TrStudioAdmin owns models/workflows/providers above the runtime. <em>(F-PROFILES)</em> <!-- from: TrSetup-Plan.md §2, §6.4 --></li>
+      <li><strong>BRD-40</strong> — System shall auto-install PostgreSQL + PgVector (winget/brew + <code>CREATE EXTENSION vector</code>) and ffmpeg where a profile requires them. <em>(F-PROFILES)</em> <!-- from: TrSetup-Plan.md §6.4 --></li>
+      <li><strong>BRD-41</strong> — The Mac app-runner role shall check/fix everything needed to build and run the portfolio apps locally per the selected app's profile. <em>(F-MACRUN)</em> <!-- from: TrSetup-Plan.md §3 --></li>
+      <li><strong>BRD-42</strong> — Once prerequisites are green, user can run "Build &amp; install &lt;App&gt; for Mac (Catalyst)" as a one-click fixer (<code>dotnet build -f net10.0-maccatalyst -c Release</code>). <em>(F-MACRUN)</em> <!-- from: TrSetup-Plan.md §6.5 --></li>
+      <li><strong>BRD-43</strong> — System shall check available disk space against a configurable floor (warn severity) for model-heavy apps. <em>(F-MACRUN)</em> <!-- from: TrSetup-Plan.md §6.4 --></li>
+      <li><strong>BRD-44</strong> — <code>TrSetup</code> shall ship as a Windows unpackaged exe (<code>WindowsPackageType=None</code>) and as Mac Catalyst via MAUI, ad-hoc signed for personal LAN use. <em>(F-MAUIHEAD)</em> <!-- from: TrSetup-Plan.md §4, §10 --></li>
+      <li><strong>BRD-45</strong> — <strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> P4 shall firm up <code>TrSetup-BuildAndRun-Guide.md</code> (concrete paths/ports) and ship the distribution scripts (self-contained publishes for Cli/Web per RID). <em>(F-MAUIHEAD)</em> <!-- from: TrSetup-Plan.md §9, TrSetup-BuildAndRun-Guide.md --></li>
+      <li><strong>BRD-46</strong> — <strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> Agents/CI can run <code>trsetup --check --json</code> to get the machine-readable board (all checks, statuses, evidence) without any UI. <em>(F-AGENT)</em> <!-- from: TrSetup-Plan.md §9 --></li>
+      <li><strong>BRD-47</strong> — <strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> (Stretch) The verifier may use <code>--check --json</code> as a verify-phase §0 environment pre-flight gate. <em>(F-AGENT)</em> <!-- from: TrSetup-Plan.md §9 --></li>
+      <li><strong>BRD-54</strong> — Decommission the CLI and Web heads — TrSetup ships as a single MAUI Blazor Hybrid desktop app (<code>TrSetup</code> — Windows unpackaged exe + Mac Catalyst — hosting <code>TrSetupUI</code> over <code>TrSetup.Core</code>); code removal tracked by checklist REQ-FN-034. <em>(F-MAUIHEAD)</em> <!-- owner decision 2026-07-09 --></li>
+      <li><strong>BRD-56</strong> — Settings/Configuration screen in the MAUI app — edit machine roles, selected app, and named endpoint values (Mac IP); show the settings-file path; read-only profile-details pane (requirement rows + built-in vs <code>.tfcore/trsetup-profile.json</code> override source). Replaces the withdrawn CLI configuration surface (BRD-16/BRD-46 lapsed). (REQ-UI-006) <em>(F-ROLES)</em> <!-- owner request 2026-07-09 --></li>
+    </ul>
+
+    <h2 id="non-functional-requirements">11. Non-functional requirements<a class="anchor-link" href="#non-functional-requirements">#</a></h2>
+
+    <table>
+      <thead><tr><th>Target</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Full detect sweep (single role, framework core)</td><td>&lt; 30 s typical; network probes in parallel with 5 s timeouts</td></tr>
+        <tr><td>Single re-check</td><td>&lt; 5 s</td></tr>
+        <tr><td>Board first paint</td><td>&lt; 2 s after launch (detects stream in asynchronously)</td></tr>
+        <tr><td>UI responsiveness during fixes</td><td>never blocked — fixes run async with live output streaming</td></tr>
+        <tr><td>Self-contained CLI publish size</td><td>reasonable for LAN copy (~&lt;120 MB) <em>(withdrawn 2026-07-09 with the CLI head — see BRD-53)</em></td></tr>
+        <tr><td>Logging (MAUI head)</td><td>Serilog rolling file sink under the app-data <code>logs/</code> dir; wired at startup; unhandled exceptions logged</td></tr>
+      </tbody>
+    </table>
+
+    <ul>
+      <li><strong>BRD-48</strong> — Performance: the board meets the target table above; long-running fixes stream output live and never freeze the UI. <em>(F-BOARD, F-FIX)</em></li>
+      <li><strong>BRD-49</strong> — Security: consent-per-elevation, pinned official sources with checksum verification where published, presence-only secrets, outbound-only networking, no telemetry (operationalizes BRD-30..32). <em>(F-ELEV)</em> <!-- from: TrSetup-Plan.md §7 --></li>
+      <li><strong>BRD-50</strong> — Accessibility: GUI board fully keyboard-navigable with visible focus; status conveyed by icon + text, never color alone (TUI is keyboard-native by construction). <em>(F-BOARD, F-TUI)</em></li>
+      <li><strong>BRD-51</strong> — Reliability: any interrupted or failed fix leaves the machine no worse than before (idempotent, TrSetup-managed locations); re-running is always safe. <em>(F-FIX)</em></li>
+      <li><strong>BRD-52</strong> — Testability: every interactive Blazor control carries a stable <code>data-testid</code>; every MAUI control carries <code>AutomationId</code>; <code>--check --json</code> gives CI a stable assertion surface <em>(the <code>--check --json</code> clause lapsed with the CLI head's withdrawal 2026-07-09; the testid/AutomationId mandates stand)</em>. <em>(F-BOARD, F-MAUIHEAD, F-AGENT)</em></li>
+      <li><strong>BRD-53</strong> — <strong>[WITHDRAWN 2026-07-09 — owner decision: single MAUI desktop app; see REQ-FN-034]</strong> Portability: the Cli and Web heads run from self-contained publishes on a machine with no .NET installed (the bare-Mac/WSL bootstrap path). <em>(F-TUI, F-WEBGUI)</em> <!-- from: TrSetup-BuildAndRun-Guide.md §3 --></li>
+      <li><strong>BRD-55</strong> — Observability: Serilog file-based logging in the MAUI head — rolling file sink under the app-data <code>logs/</code> dir, wired at startup, unhandled exceptions logged (checklist REQ-NFR-007; TechieFlow standing NFR for every executable head). <em>(F-MAUIHEAD)</em> <!-- owner decision 2026-07-09 --></li>
+    </ul>
+
+    <h2 id="constraints-assumptions">12. Constraints &amp; assumptions<a class="anchor-link" href="#constraints-assumptions">#</a></h2>
+
+    <ul>
+      <li><strong>Scope change (2026-07-09, owner decision):</strong> TrSetup ships as a <strong>single MAUI Blazor Hybrid desktop app</strong> (<code>TrSetup</code>, Windows unpackaged exe + Mac Catalyst). The Blazor Server head (<code>TrSetup.Web</code>) and the Spectre.Console CLI/TUI head (<code>TrSetup.Cli</code>, incl. <code>--check --json</code> agent mode and the verifier pre-flight gate) are withdrawn; this supersedes the four-head parts of the 2026-07-05 locked decisions below. Decommission is checklist REQ-FN-034; the new standing Serilog Observability NFR is REQ-NFR-007 (BRD-54/BRD-55).</li>
+      <li><strong>Locked decisions (2026-07-05, plan §10):</strong> name TrSetup; own repo at <code>/mnt/c/3AIGenCode/TrSetup</code> (framework scaffolded; <code>git init</code> is the owner's manual step); WSL head = Blazor Server in the Windows browser <strong>plus</strong> the TUI; profiles = built-in <strong>and</strong> app-repo override, app repo wins; secrets presence-only; WORKFLOW §0/§0b stays alongside until P2 proves out, then shrinks to "run TrSetup" with the manual steps kept as reference; Mac distribution = Mac Catalyst via MAUI, ad-hoc signed; auto-install mandate; build-and-run guides for TrSetup/AppStudio/TrStudio with TrSetup automating the Mac-side prerequisites.</li>
+      <li>Visual Studio on Windows cannot build Mac Catalyst (pair-to-Mac covers iOS only) — Mac builds happen on the Mac.</li>
+      <li>Xcode full install (App Store) and router DHCP reservations are the genuinely manual steps.</li>
+      <li>Build phases P1–P5 are each independently shippable (plan §9); P1 (read-only Doctor) already kills the "is my machine ok?" pain.</li>
+      <li>TrSetup is TechieFlow app #11 and dogfoods the framework (this BRD/checklist/DevGuide pipeline).</li>
+    </ul>
+
+    <h2 id="success-metrics">13. Success metrics<a class="anchor-link" href="#success-metrics">#</a></h2>
+
+    <ul>
+      <li>A fresh WSL distro or bare Mac reaches all-green for its role(s) via TrSetup alone, with the only manual steps being App-Store Xcode and a DHCP reservation.</li>
+      <li>"Is my bridge still up?" answered in &lt; 1 minute (open board → re-check all).</li>
+      <li>WORKFLOW §0/§0b reduced to "run TrSetup" after P2 (locked decision).</li>
+      <li>New portfolio app onboarded by writing one <code>trsetup-profile.json</code> — zero tool-code changes.</li>
+      <li>Exported report accepted as sufficient context in a Claude diagnosis session without follow-up environment questions.</li>
+    </ul>
+
+    <h2 id="risks">14. Risks<a class="anchor-link" href="#risks">#</a></h2>
+
+    <table>
+      <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>Installer sources change URLs/formats (Android cmdline-tools, ComfyUI releases)</td><td>Medium</td><td>Fixers break</td><td>URLs pinned per profile/engine release; FixPreview shows them; failures surface raw output, never silent</td></tr>
+        <tr><td>Elevation UX inconsistent across OSes</td><td>Medium</td><td>Confusing consent flow</td><td>One consent surface in UI; design reviewed at P2 (Architecture §9)</td></tr>
+        <tr><td>macOS privacy/security prompts block LaunchAgent / CLT installs</td><td>Medium</td><td>Mac role setup stalls</td><td>Detect + explain the manual step; never bypass</td></tr>
+        <tr><td>Checksum unavailable for some sources</td><td>Medium</td><td>Weakened supply-chain guarantee</td><td>Record "no published checksum" in evidence; prefer sources that publish</td></tr>
+        <tr><td>Dependency-order graph wrong (fix-all bricks a step)</td><td>Low</td><td>Failed run</td><td>Idempotent fixes + re-verify per step; failures stop-or-continue per user</td></tr>
+        <tr><td>Scope creep into TrStudioAdmin's territory</td><td>Medium</td><td>Duplicate management surfaces</td><td>Boundary rule pinned: environment → TrSetup; models/workflows/providers → TrStudioAdmin</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="glossary">15. Glossary<a class="anchor-link" href="#glossary">#</a></h2>
+
+    <ul>
+      <li><strong>TrBlazeUI</strong> — the owner's Blazor component library (Tailwind v4 + shadcn design); all TrSetup screens use it.</li>
+      <li><strong>TechieRag</strong> — the owner's RAG library — <em>not used</em> in TrSetup.</li>
+      <li><strong>Check</strong> — one board item implementing Detect/Explain/FixPreview/Fix/Verify (plan §5).</li>
+      <li><strong>Machine role</strong> — Agent host (WSL) · Device host (Windows) · Device host (Mac) · App runner (Mac).</li>
+      <li><strong>Profile</strong> — declarative <code>trsetup-profile.json</code> requirement set for one app; built-in + app-repo override (app repo wins).</li>
+      <li><strong>winrun</strong> — the WSL→Windows command bridge script at <code>~/bin/winrun</code>.</li>
+      <li><strong>Mirrored networking</strong> — WSL2 <code>networkingMode=mirrored</code>, letting WSL reach Windows-host ports via localhost.</li>
+      <li><strong>REQ-UI-* / REQ-FN-* / REQ-RAG-* / REQ-NFR-*</strong> — checklist requirement prefixes routed to /trblazeui, flow-master, /techierag, and flow-master respectively.</li>
+    </ul>
+
+    <hr>
+    <p class="subtitle">Last updated: 2026-07-10 (name normalization only: the MAUI head project was renamed <code>src/TrSetup.App</code> → <code>src/TrSetup</code> under checklist REQ-FN-035 — the primary head carries the product name; historical mentions now use the current name)<br>
+    Highest BRD ID: BRD-56<br>
+    Sources harvested: docs/TrSetup-Plan.md (superseded → docs/OldDocs/), docs/TrSetup-BuildAndRun-Guide.md (stays — independently authoritative)<br>
+    Custom instructions applied: .NET 10 (plan overrides the .NET 9 default); no DB / no RAG / no auth (local single-user tool); four heads incl. Spectre.Console TUI (reduced to the single MAUI head 2026-07-09 — BRD-54); locked decisions §10 carried into §12<br>
+    First-pass draft from concept — review and edit. New BRDs may be added (append-only); do not renumber existing IDs.</p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

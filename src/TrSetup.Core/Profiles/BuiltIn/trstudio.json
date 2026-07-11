@@ -1,0 +1,88 @@
+{
+  "name": "TrStudio",
+  "requirements": [
+    {
+      "type": "sdk",
+      "id": "trstudio.dotnet-sdk",
+      "title": ".NET 10 SDK",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "version": "10" }
+    },
+    {
+      "type": "service",
+      "id": "trstudio.postgres",
+      "title": "PostgreSQL running + PgVector extension",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "service": "postgres", "port": "5432", "extension": "vector" }
+    },
+    {
+      "type": "service",
+      "id": "trstudio.ffmpeg",
+      "title": "ffmpeg on PATH",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "service": "ffmpeg" }
+    },
+    {
+      "type": "runtime-install",
+      "id": "trstudio.comfyui",
+      "title": "Isolated Python env + ComfyUI installed",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "runtime": "comfyui" }
+    },
+    {
+      "type": "disk-space",
+      "id": "trstudio.disk-space",
+      "title": "Disk space for models (configurable floor)",
+      "roles": ["AppRunnerMac"],
+      "severity": "Recommended",
+      "params": { "floorGb": "80" }
+    },
+    {
+      "type": "nuget-feed",
+      "id": "trstudio.techierag-feed",
+      "title": "GitHub PAT for TechieRag NuGet",
+      "roles": ["DeviceHostWindows"],
+      "severity": "Required",
+      "params": {
+        "url": "https://nuget.pkg.github.com/techierathore/index.json",
+        "patEnvVar": "GITHUB_PACKAGES_PAT"
+      }
+    },
+    {
+      "type": "env-secret",
+      "id": "trstudio.runpod-key",
+      "title": "RunPod API key present",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "envVar": "RUNPOD_API_KEY" }
+    },
+    {
+      "type": "env-secret",
+      "id": "trstudio.heygen-key",
+      "title": "HeyGen key present",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "envVar": "HEYGEN_API_KEY" }
+    },
+    {
+      "type": "env-secret",
+      "id": "trstudio.appmanager-key",
+      "title": "AppManager key present",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "envVar": "APPMANAGER_API_KEY" }
+    },
+    {
+      "type": "endpoint",
+      "id": "trstudio.appmanager-endpoint",
+      "title": "AppManager endpoint reachable",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "url": "https://localhost:5101/" }
+    }
+  ]
+}

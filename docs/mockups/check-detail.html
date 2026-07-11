@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrSetup — Check detail</title>
+<style>
+:root{
+  --background:#ffffff;--foreground:#0a0a0a;--card:#ffffff;--muted:#f5f5f5;--muted-foreground:#737373;
+  --primary:#171717;--primary-foreground:#fafafa;--secondary:#f5f5f5;--border:#e5e5e5;--destructive:#dc2626;
+  --ring:#a3a3a3;--radius:0.625rem;--sidebar:#fafafa;--sidebar-border:#e5e5e5;
+  --pass:#16a34a;--warn:#d97706;--fail:#dc2626;--na:#a3a3a3;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i.sm{width:14px;height:14px}
+a{color:inherit}
+
+/* ---------- shell (backdrop board) ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{width:256px;flex:none;background:var(--sidebar);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;padding:8px;position:sticky;top:0;height:100vh}
+.sb-head{display:flex;align-items:center;gap:10px;padding:8px;margin-bottom:8px}
+.sb-logo{width:32px;height:32px;flex:none;border-radius:8px;background:var(--primary);color:var(--primary-foreground);display:flex;align-items:center;justify-content:center}
+.sb-title{font-weight:700;font-size:14px;line-height:1.2}
+.sb-sub{font-size:11px;color:var(--muted-foreground);line-height:1.3;white-space:nowrap}
+.sb-label{font-size:11px;font-weight:500;color:var(--muted-foreground);padding:8px 8px 4px}
+.sb-nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.sb-item{display:flex;align-items:center;gap:10px;height:36px;padding:0 8px;border-radius:8px;text-decoration:none;font-size:14px;color:var(--foreground)}
+.sb-item svg{color:var(--muted-foreground)}
+.sb-item.active{background:#e5e5e5;font-weight:500}
+.sb-item.active svg{color:var(--foreground)}
+.sb-foot{padding:10px 8px 6px;font-size:11px;color:var(--muted-foreground);border-top:1px solid var(--sidebar-border);display:flex;align-items:center;gap:6px}
+.sb-foot svg.i{width:12px;height:12px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:64px;flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;background:var(--background);border-bottom:1px solid var(--border)}
+.page-title{font-size:15px;font-weight:600;white-space:nowrap}
+.topbar-spacer{flex:1}
+.content{width:100%;max-width:1200px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 16px;border-radius:calc(var(--radius) - 2px);font-size:14px;font-weight:500;font-family:inherit;border:1px solid transparent;background:transparent;color:var(--foreground);cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-primary{background:var(--primary);color:var(--primary-foreground)}
+.btn-primary:hover{background:#2d2d2d}
+.btn-outline{background:var(--background);border-color:var(--border);box-shadow:0 1px 2px rgb(0 0 0/.05)}
+.btn-outline:hover{background:var(--muted)}
+.btn-ghost:hover{background:var(--muted)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px;gap:6px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:none;background:transparent;border-radius:8px;color:var(--foreground);cursor:pointer}
+.icon-btn:hover{background:var(--muted)}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:1px 10px;border-radius:9999px;font-size:12px;font-weight:600;line-height:18px;white-space:nowrap}
+.badge-success{background:#dcfce7;color:#166534}
+.badge-warn{background:#fef3c7;color:#92400e}
+.badge-destructive{background:#fee2e2;color:#b91c1c}
+.badge-outline{background:transparent;border:1px solid var(--border);color:var(--muted-foreground);font-weight:500}
+
+.selector{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px;border:1px solid var(--border);border-radius:calc(var(--radius) - 2px);background:var(--background);box-shadow:0 1px 2px rgb(0 0 0/.05);font-size:13px}
+.selector .sel-label{font-size:12px;color:var(--muted-foreground)}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--muted);border-radius:6px;padding:1px 8px;font-size:12px;font-weight:500;white-space:nowrap}
+.chip svg.i{width:12px;height:12px;color:var(--muted-foreground)}
+.chev{color:var(--muted-foreground)}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 1px 2px rgb(0 0 0/.05);overflow:hidden}
+.card-h{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.card-title{font-size:15px;font-weight:600}
+.card-h .grow{flex:1}
+.row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px}
+.row + .row{border-top:1px solid var(--border)}
+.row.compact{padding:8px 16px;align-items:center}
+.st{display:inline-flex;align-items:center;gap:6px;width:74px;flex:none;font-size:12px;font-weight:600;margin-top:2px}
+.row.compact .st{margin-top:0}
+.st.pass{color:var(--pass)}.st.warn{color:var(--warn)}.st.fail{color:var(--fail)}
+.row-body{flex:1;min-width:0}
+.row-title{font-weight:500;line-height:1.35}
+.row.compact .row-title{font-weight:400;font-size:13px}
+.row-ev{font-size:12px;color:var(--muted-foreground);font-family:var(--mono);margin-top:2px;overflow-wrap:anywhere}
+.row.compact .row-ev{margin-top:0}
+.row-actions{display:flex;align-items:center;gap:4px;flex:none;margin-left:auto}
+.row.selected{background:var(--muted)}
+
+/* ---------- overlay + sheet ---------- */
+.overlay{position:fixed;inset:0;background:rgb(0 0 0/.45);z-index:40}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:480px;max-width:100vw;background:var(--background);border-left:1px solid var(--border);box-shadow:-12px 0 32px rgb(0 0 0/.18);z-index:50;display:flex;flex-direction:column}
+.sheet-h{padding:20px 24px 16px;border-bottom:1px solid var(--border)}
+.sheet-h-top{display:flex;align-items:flex-start;gap:12px}
+.sheet-title{font-size:17px;font-weight:600;line-height:1.3;flex:1}
+.sheet-sub{font-size:12px;color:var(--muted-foreground);margin-top:6px}
+.sheet-body{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:20px}
+.sec-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted-foreground);margin-bottom:8px}
+.prose{font-size:13.5px;line-height:1.6;color:var(--foreground)}
+.link{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:500;color:#2563eb;text-decoration:underline;text-underline-offset:3px;margin-top:8px}
+.link svg.i{width:13px;height:13px}
+.evidence-card{background:var(--muted);border:1px solid var(--border);border-radius:calc(var(--radius) - 2px);padding:12px 14px}
+.evidence-card .mono{font-family:var(--mono);font-size:12.5px;line-height:1.6;overflow-wrap:anywhere}
+.evidence-card .when{font-size:11.5px;color:var(--muted-foreground);margin-top:6px}
+.codeblock{position:relative;background:#171717;color:#fafafa;border-radius:calc(var(--radius) - 2px);padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;overflow-x:auto}
+.codeblock .cm{color:#a3a3a3}
+.copy-btn{position:absolute;top:8px;right:8px;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:none;border-radius:6px;background:transparent;color:#a3a3a3;cursor:pointer}
+.copy-btn:hover{background:rgb(255 255 255/.12);color:#fafafa}
+.collapsible{border:1px solid var(--border);border-radius:calc(var(--radius) - 2px)}
+.collapsible-h{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;font-weight:500;cursor:pointer}
+.collapsible-h svg.i{width:14px;height:14px;color:var(--muted-foreground)}
+.collapsible-body{border-top:1px solid var(--border);padding:12px 14px;font-size:13px;color:var(--muted-foreground)}
+.sheet-f{display:flex;align-items:center;gap:8px;padding:16px 24px;border-top:1px solid var(--border)}
+.sheet-f .spacer{flex:1}
+
+@media(max-width:900px){
+  .sidebar{display:none}
+  .sheet{width:100vw}
+  .content{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+    <symbol id="ic-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="12" rx="1"/></symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+    <symbol id="ic-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+    <symbol id="ic-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="ic-panel-left" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+    <symbol id="ic-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="ic-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="ic-circle-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+    <symbol id="ic-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+    <symbol id="ic-file-down" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></symbol>
+    <symbol id="ic-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></symbol>
+    <symbol id="ic-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+    <symbol id="ic-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="ic-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="ic-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+    <symbol id="ic-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="ic-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="ic-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ Dimmed board backdrop (simplified) ============ -->
+<div class="app" aria-hidden="true">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="sb-logo"><svg class="i"><use href="#ic-wrench"/></svg></div>
+      <div>
+        <div class="sb-title">TrSetup</div>
+        <div class="sb-sub">v0.1 — Environment Doctor</div>
+      </div>
+    </div>
+    <div class="sb-label">Navigation</div>
+    <nav class="sb-nav">
+      <a class="sb-item active" href="dashboard.html"><svg class="i"><use href="#ic-dashboard"/></svg>Board</a>
+      <a class="sb-item" href="fix-run.html"><svg class="i"><use href="#ic-play"/></svg>Fix all run</a>
+      <a class="sb-item" href="report.html"><svg class="i"><use href="#ic-file-text"/></svg>Report</a>
+      <a class="sb-item" href="role-picker.html"><svg class="i"><use href="#ic-settings"/></svg>Setup</a>
+    </nav>
+    <div class="sb-foot"><svg class="i"><use href="#ic-monitor"/></svg>Machine: DESKTOP-TR01 (WSL)</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn"><svg class="i"><use href="#ic-panel-left"/></svg></button>
+      <h1 class="page-title">Environment board</h1>
+      <div class="topbar-spacer"></div>
+      <div class="selector">
+        <span class="chip"><svg class="i"><use href="#ic-monitor"/></svg>Device host (Windows)</span>
+        <span class="chip"><svg class="i"><use href="#ic-terminal"/></svg>Agent host (WSL)</span>
+        <svg class="i sm chev"><use href="#ic-chevron-down"/></svg>
+      </div>
+      <div class="selector"><span class="sel-label">App</span><span style="font-weight:500">AppStudio</span><svg class="i sm chev"><use href="#ic-chevron-down"/></svg></div>
+      <button class="btn btn-outline"><svg class="i"><use href="#ic-refresh"/></svg>Re-check all</button>
+      <button class="btn btn-outline"><svg class="i"><use href="#ic-file-down"/></svg>Export report</button>
+    </header>
+
+    <main class="content">
+      <section class="card">
+        <div class="card-h">
+          <span class="card-title">Framework core</span>
+          <span class="badge badge-success">5 ✓</span>
+          <span class="badge badge-warn">1 ⚠</span>
+          <span class="badge badge-destructive">1 ✗</span>
+          <div class="grow"></div>
+          <button class="btn btn-outline btn-sm"><svg class="i sm"><use href="#ic-wrench"/></svg>Fix all</button>
+        </div>
+        <div class="rows">
+          <div class="row">
+            <span class="st fail"><svg class="i"><use href="#ic-circle-x"/></svg>Fail</span>
+            <div class="row-body">
+              <div class="row-title">Appium mac2 driver missing</div>
+              <div class="row-ev">appium driver list --installed → xcuitest 7.28.3 only, no 'mac2' entry</div>
+            </div>
+            <div class="row-actions">
+              <button class="btn btn-ghost btn-sm"><svg class="i sm"><use href="#ic-eye"/></svg>Preview</button>
+              <button class="btn btn-ghost btn-sm"><svg class="i sm"><use href="#ic-wrench"/></svg>Fix</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="st warn"><svg class="i"><use href="#ic-triangle-alert"/></svg>Warn</span>
+            <div class="row-body">
+              <div class="row-title">Mirrored networking: probe slow (3.2 s)</div>
+              <div class="row-ev">probe to Windows host port 5999 answered in 3.2 s (threshold 1.0 s)</div>
+            </div>
+          </div>
+          <div class="row compact">
+            <span class="st pass"><svg class="i"><use href="#ic-check-circle"/></svg>Pass</span>
+            <div class="row-body"><span class="row-title">.NET SDK 10.0.100 present</span></div>
+            <span class="row-ev">dotnet --list-sdks → 10.0.100 [/usr/lib/dotnet/sdk]</span>
+          </div>
+          <div class="row compact">
+            <span class="st pass"><svg class="i"><use href="#ic-check-circle"/></svg>Pass</span>
+            <div class="row-body"><span class="row-title">Playwright + Chromium installed</span></div>
+            <span class="row-ev">npx playwright --version → 1.49.1 · chromium-1148 present</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-h">
+          <span class="card-title">AppStudio profile</span>
+          <span class="badge badge-success">4 ✓</span>
+          <span class="badge badge-destructive">2 ✗</span>
+          <div class="grow"></div>
+          <button class="btn btn-outline btn-sm"><svg class="i sm"><use href="#ic-wrench"/></svg>Fix all</button>
+        </div>
+        <div class="rows">
+          <div class="row selected">
+            <span class="st fail"><svg class="i"><use href="#ic-circle-x"/></svg>Fail</span>
+            <div class="row-body">
+              <div class="row-title">MAUI workload not installed</div>
+              <div class="row-ev">dotnet workload list → no 'maui' entry</div>
+            </div>
+            <div class="row-actions">
+              <button class="btn btn-ghost btn-sm"><svg class="i sm"><use href="#ic-eye"/></svg>Preview</button>
+              <button class="btn btn-ghost btn-sm"><svg class="i sm"><use href="#ic-wrench"/></svg>Fix</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="st fail"><svg class="i"><use href="#ic-circle-x"/></svg>Fail</span>
+            <div class="row-body">
+              <div class="row-title">GitHub Packages feed: 401</div>
+              <div class="row-ev">dotnet nuget list source → 'techierathore' feed responds 401 Unauthorized</div>
+            </div>
+            <div class="row-actions">
+              <button class="btn btn-outline btn-sm"><svg class="i sm"><use href="#ic-external-link"/></svg>Open guide</button>
+            </div>
+          </div>
+          <div class="row compact">
+            <span class="st pass"><svg class="i"><use href="#ic-check-circle"/></svg>Pass</span>
+            <div class="row-body"><span class="row-title">.NET 10 SDK present</span></div>
+            <span class="row-ev">dotnet --list-sdks → 10.0.100</span>
+          </div>
+          <div class="row compact">
+            <span class="st pass"><svg class="i"><use href="#ic-check-circle"/></svg>Pass</span>
+            <div class="row-body"><span class="row-title">App Manager API reachable</span></div>
+            <span class="row-ev">GET https://localhost:5101/health → 200 in 95 ms</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- ============ Overlay + Sheet ============ -->
+<div class="overlay"></div>
+
+<aside class="sheet" role="dialog" aria-label="Check detail">
+  <header class="sheet-h">
+    <div class="sheet-h-top">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="sheet-title" style="flex:initial">MAUI workload not installed</span>
+          <span class="badge badge-destructive"><svg class="i" style="width:12px;height:12px"><use href="#ic-circle-x"/></svg>Fail</span>
+        </div>
+        <div class="sheet-sub">AppStudio profile · workload check · id: appstudio.workload.maui</div>
+      </div>
+      <button class="icon-btn" title="Close"><svg class="i"><use href="#ic-x"/></svg></button>
+    </div>
+  </header>
+
+  <div class="sheet-body">
+
+    <section>
+      <div class="sec-label">Why it's needed</div>
+      <p class="prose" style="margin:0">
+        AppStudio's Windows head is a MAUI Blazor Hybrid app. Building the unpackaged
+        Windows exe — and later the Mac Catalyst head — requires the .NET MAUI workload
+        on this machine. Without it, <code style="font-family:var(--mono);font-size:12.5px;background:var(--muted);padding:1px 5px;border-radius:4px">dotnet build</code>
+        fails at restore with NETSDK1147.
+      </p>
+      <a class="link" href="#">WORKFLOW §0b step 2<svg class="i"><use href="#ic-external-link"/></svg></a>
+    </section>
+
+    <section>
+      <div class="sec-label">Detect evidence</div>
+      <div class="evidence-card">
+        <div class="mono">dotnet workload list → no 'maui' entry</div>
+        <div class="when">checked 2026-07-05 14:32</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-label">Fix preview</div>
+      <div class="codeblock">
+        <button class="copy-btn" title="Copy command"><svg class="i sm"><use href="#ic-copy"/></svg></button>
+        <span class="cm"># runs with your consent — exact command:</span><br>
+        dotnet workload install maui
+      </div>
+    </section>
+
+    <section>
+      <div class="collapsible">
+        <div class="collapsible-h">
+          <svg class="i"><use href="#ic-chevron-down"/></svg>
+          Last run output
+        </div>
+        <div class="collapsible-body">no runs yet</div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="sheet-f">
+    <button class="btn btn-primary"><svg class="i"><use href="#ic-wrench"/></svg>Fix</button>
+    <button class="btn btn-outline"><svg class="i"><use href="#ic-refresh"/></svg>Re-check</button>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost">Close</button>
+  </footer>
+</aside>
+
+</body>
+</html>

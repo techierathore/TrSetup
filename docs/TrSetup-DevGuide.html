@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TrSetup — Developer Guide — screen → service → engine</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TrSetup — Developer Guide</h1>
+    <div class="sub">screen → service → engine · last rendered 2026-07-10</div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#how-to-read-this-guide">How to read this guide</a></li>
+      <li><a href="#architecture-in-one-diagram">Architecture in one diagram</a></li>
+      <li><a href="#the-one-data-chain-every-screen-shares">The one data chain every screen shares</a></li>
+      <li><a href="#screen-board-dashboard">Screen: Board dashboard</a></li>
+      <li><a href="#screen-check-detail-sheet">Screen: Check detail sheet</a></li>
+      <li><a href="#screen-first-run-role-picker">Screen: First-run role picker</a></li>
+      <li><a href="#screen-fix-all-run-view">Screen: Fix-all run view</a></li>
+      <li><a href="#screen-report-preview">Screen: Report preview</a></li>
+      <li><a href="#screen-settings-configuration">Screen: Settings / Configuration</a></li>
+      <li><a href="#how-the-app-is-hosted">How the app is hosted</a></li>
+      <li><a href="#where-things-live">Where things live</a></li>
+      <li><a href="#known-issues-and-gotchas">Known issues and gotchas</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TrSetup — Developer Guide (screen → service → engine)</h1>
+    <div class="subtitle">The bug-chasing map: every control traced from Razor page → BoardState → CheckEngine → check → process runner.</div>
+
+    <p><strong>Runtime-verified 2026-07-10 (executed verify-phase: all 6 UI screens render+visual via the :5999 smoke host, 7/7 specs; board + settings desktop screenshots inspected) · Last updated 2026-07-10 (head project renamed <code>src/TrSetup.App</code> → <code>src/TrSetup</code>, REQ-FN-035 — paths updated throughout).</strong></p>
+
+    <blockquote><p><strong>Purpose.</strong> The bug-chasing map for TrSetup: for any screen it names the control, its <code>data-testid</code>, the data it renders, and the exact call chain down through the RCL board state into the <code>TrSetup.Core</code> engine and the process runner — so a human can confirm the AI-generated code does what the board shows.</p></blockquote>
+
+    <blockquote><p><strong>Status:</strong> 34 <strong>Verified</strong> · 8 Implemented (host/destructive external UAT — live installs on Windows/Mac, the MAUI GUI visual boot, and the Mac Catalyst build, everything that can only run on the owning box) · 6 N/A (withdrawn with the CLI head) · 0 Planned · 0 FAIL. REQ-FN-031/FN-034/NFR-007/UI-006 (demoted 2026-07-10 as self-attested) plus the new REQ-FN-035 head rename are now <strong>Verified by an executed verify-phase run</strong> (2026-07-10, run ledger <code>docs/.last-verify.json</code>). Source of truth is the Requirements Status table in <code>docs/TrSetup-Checklist.md</code>; this guide never restates verdicts, it traces code.</p></blockquote>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#how-to-read-this-guide">How to read this guide</a></li>
+        <li><a href="#architecture-in-one-diagram">Architecture in one diagram</a></li>
+        <li><a href="#the-one-data-chain-every-screen-shares">The one data chain every screen shares</a></li>
+        <li><a href="#screen-board-dashboard">Screen: Board dashboard</a></li>
+        <li><a href="#screen-check-detail-sheet">Screen: Check detail sheet</a></li>
+        <li><a href="#screen-first-run-role-picker">Screen: First-run role picker</a></li>
+        <li><a href="#screen-fix-all-run-view">Screen: Fix-all run view</a></li>
+        <li><a href="#screen-report-preview">Screen: Report preview</a></li>
+        <li><a href="#screen-settings-configuration">Screen: Settings / Configuration</a></li>
+        <li><a href="#how-the-app-is-hosted">How the app is hosted</a></li>
+        <li><a href="#where-things-live">Where things live</a></li>
+        <li><a href="#known-issues-and-gotchas">Known issues and gotchas</a></li>
+      </ol>
+    </div>
+
+    <h2 id="how-to-read-this-guide">How to read this guide<a class="anchor-link" href="#how-to-read-this-guide">#</a></h2>
+
+    <p>TrSetup has <strong>no database and no stored procedures</strong> (ADR-002 / ADR-003). Nothing about the machine is persisted — it is <em>detected live</em> every sweep. So the "data lineage" for a board row is not table → repository → SQL; it is:</p>
+
+    <pre><code>Razor page/component  →  BoardState (RCL per-circuit service)  →  CheckEngine (Core)  →  Check (catalog/profile)  →  ProcessRunner / HTTP probe</code></pre>
+
+    <ul>
+      <li>All six screens live in <strong>one</strong> Razor Class Library, <code>TrSetupUI</code>, hosted by the app's single head: <code>TrSetup</code>, a MAUI Blazor Hybrid desktop app (Windows unpackaged exe + Mac Catalyst). There is no screen code in the head.</li>
+      <li>Every interactive/data-bound control carries a <strong>stable <code>data-testid</code></strong> (REQ-NFR-005). Those ids are quoted verbatim below — they are how Playwright drives the board and how you locate a control in the DOM.</li>
+      <li>The only persisted state is a small JSON settings file (roles, selected app, Mac IP) via <code>JsonSettingsStore</code>. Declarative app profiles are JSON too. Neither is a database.</li>
+      <li><strong>Field-prefix convention</strong> (Coding Standards, project day-1 decision): instance fields <code>obj*</code> (<code>objEngine</code>), method args <code>a*</code> (<code>aRoles</code>), locals <code>v*</code> (<code>vBoard</code>). You will see this everywhere; it is intentional, not noise.</li>
+    </ul>
+
+    <p>Each control is tagged with a render-status: <code>renders ✓ runtime-confirmed 2026-07-07</code> means it was observed live this date (Playwright smoke + visual gate, per the checklist). The board additionally carries a mobile caveat, called out in <a href="#known-issues-and-gotchas">Known issues</a>.</p>
+
+    <h2 id="architecture-in-one-diagram">Architecture in one diagram<a class="anchor-link" href="#architecture-in-one-diagram">#</a></h2>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart TB
+  subgraph Heads["The one head (thin host — no screen code)"]
+    App["TrSetup&lt;br/&gt;MAUI Blazor Hybrid&lt;br/&gt;(Windows unpackaged + Mac Catalyst)"]
+  end
+  subgraph RCL["TrSetupUI (Razor Class Library — all 6 screens)"]
+    Pages["Pages: Home / CheckDetail / Setup / FixRun / Report / Settings"]
+    State["BoardState&lt;br/&gt;(per-circuit UI state)"]
+  end
+  subgraph Core["TrSetup.Core (UI-free engine)"]
+    Engine["CheckEngine&lt;br/&gt;(scope + parallel detect sweep)"]
+    Checks["Check catalog&lt;br/&gt;(WSL / Windows / Mac) + profile checks"]
+    Pipe["FixPipeline / FixAllRunner&lt;br/&gt;(consent-gated fix + re-verify)"]
+    Runner["ProcessRunner&lt;br/&gt;(command + output capture)"]
+    Probe["HttpStatusProbe&lt;br/&gt;(cross-machine /status)"]
+    Report["ReportExporter (MD + HTML)"]
+  end
+  App --&gt; RCL
+  Pages --&gt; State
+  State --&gt; Engine
+  State --&gt; Pipe
+  Engine --&gt; Checks
+  Checks --&gt; Runner
+  Checks --&gt; Probe
+  Pipe --&gt; Checks
+  Pipe --&gt; Runner
+  State --&gt; Report</pre>
+    </div>
+
+    <p><code>TrSetup</code> is the <strong>only</strong> shipping head (owner decision 2026-07-09): it hosts the RCL screens verbatim via a <code>BlazorWebView</code>. The Spectre TUI head was removed under REQ-FN-034; <code>TrSetup.Web</code> is retained only as the test-only headless smoke host for the verify suite — see <a href="#how-the-app-is-hosted">How the app is hosted</a>.</p>
+
+    <h2 id="the-one-data-chain-every-screen-shares">The one data chain every screen shares<a class="anchor-link" href="#the-one-data-chain-every-screen-shares">#</a></h2>
+
+    <p>Every screen inherits <code>BoardComponentBase</code>, which injects the per-circuit <code>BoardState</code>, subscribes to its <code>Changed</code> event to re-render, and redirects to <code>/setup</code> when <code>BoardState.NeedsSetup</code> (no roles configured yet).</p>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">sequenceDiagram
+  actor U as Developer
+  participant P as "Page (BoardComponentBase)"
+  participant S as "BoardState (RCL)"
+  participant E as "CheckEngine (Core)"
+  participant C as "Check"
+  participant R as "ProcessRunner / HttpStatusProbe"
+  U-&gt;&gt;P: open a screen
+  P-&gt;&gt;S: EnsureInitializedAsync()
+  S-&gt;&gt;E: BuildBoard(roles, app)
+  E--&gt;&gt;S: CheckBoard (rows, not yet detected)
+  S-&gt;&gt;E: RunDetectSweepAsync(board)
+  loop "every in-scope row, in parallel, 5s cap"
+    E-&gt;&gt;C: DetectAsync(ct)
+    C-&gt;&gt;R: run command / HTTP GET
+    R--&gt;&gt;C: stdout + stderr + exit code
+    C--&gt;&gt;E: Pass | Warn | Fail | NotApplicable + evidence
+    E--&gt;&gt;S: RowChanged (streams into board)
+  end
+  S--&gt;&gt;P: Changed → StateHasChanged</pre>
+    </div>
+
+    <p>Key methods to breakpoint when a row shows the wrong thing:</p>
+
+    <table>
+      <thead><tr><th>Symptom</th><th>Breakpoint here</th></tr></thead>
+      <tbody>
+        <tr><td>Row status/evidence wrong</td><td>the specific <code>Check.DetectAsync</code> in <code>src/TrSetup.Core/Catalog/...</code></td></tr>
+        <tr><td>Row missing / present when it should not be</td><td><code>Check.AppliesTo</code> (<code>Checks/Check.cs</code>) + <code>CheckEngine.EnumerateChecks</code></td></tr>
+        <tr><td>Board not re-rendering</td><td><code>BoardState.Changed</code> subscription in <code>BoardComponentBase</code></td></tr>
+        <tr><td>Sweep hangs / times out</td><td><code>CheckEngine.ProbeWithTimeoutAsync</code> (5 s <code>DefaultProbeTimeout</code>)</td></tr>
+        <tr><td>Fix ran but row stays red</td><td><code>FixPipeline.RunAsync</code> → <code>Check.VerifyAsync</code> (non-green re-verify = FAILED + raw output)</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="screen-board-dashboard">Screen: Board dashboard<a class="anchor-link" href="#screen-board-dashboard">#</a></h2>
+
+    <p><strong>Route:</strong> <code>/</code> — <code>src/TrSetupUI/Pages/Home.razor</code> (a one-line host over <code>Components/BoardView.razor</code>, which carries the header + grouped board). REQ-UI-001.</p>
+
+    <p><img src="screenshots/TrSetup/board-desktop.png" alt="Board dashboard — desktop, AppStudio profile selected" style="max-width:100%;border:1px solid var(--line);border-radius:8px"></p>
+
+    <p><em>Desktop (1280×800), roles = Agent host (WSL), app = AppStudio. Grouped rows with icon+text status, per-group count badges, and per-row Preview / Fix / re-check actions.</em></p>
+
+    <h3 id="controls">Controls<a class="anchor-link" href="#controls">#</a></h3>
+
+    <table>
+      <thead><tr><th>Control</th><th><code>data-testid</code></th><th>Renders</th><th>Source chain (page → BoardState → engine → check)</th><th>Render status</th></tr></thead>
+      <tbody>
+        <tr><td>Roles selector (multi-select dropdown)</td><td><code>RolesSelector</code>, items <code>role-option-{key}</code></td><td>Current <code>Board.Roles</code> as chips; toggling re-scopes</td><td><code>BoardView.ToggleRoleAsync</code> → <code>BoardState.RescopeAsync(roles, app)</code> → <code>StartSweep</code> → <code>CheckEngine.BuildBoard</code> + <code>RunDetectSweepAsync</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>App selector</td><td><code>AppSelector</code></td><td><code>Board.SelectedApp</code> (or "Framework only"); <code>RoleCatalog.Apps</code> = Framework only / AppStudio / TrStudio</td><td><code>BoardView.OnAppChangedAsync</code> → <code>BoardState.RescopeAsync</code> → rebuild + sweep (appends profile checks via <code>CheckCatalog.AppendProfileChecks</code>)</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Re-check all</td><td><code>RecheckAllButton</code></td><td>Spinner while <code>Board.IsSweeping</code></td><td><code>BoardView.RecheckAll</code> → <code>BoardState.RecheckAll</code> → <code>StartSweep</code> → <code>CheckEngine.RunDetectSweepAsync</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Export report</td><td><code>ExportReportButton</code></td><td>Navigates to <code>/report</code></td><td><code>Nav.NavigateTo("/report")</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Group card</td><td><code>board-group-{slug}</code></td><td>One <code>BoardGroup</code> (in-scope rows only)</td><td><code>BoardState.Board.Groups</code> ← <code>CheckEngine.BuildBoard</code> groups catalog by <code>Check.Category</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Group count badges</td><td><code>count-pass-{slug}</code> (+ warn/fail inline)</td><td><code>vGroup.PassCount / WarnCount / FailCount</code></td><td>computed on <code>BoardGroup</code> from row statuses</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Per-group Fix all</td><td><code>fix-all-{slug}</code></td><td>Shown when <code>FixableRows(group).Count &gt; 0</code></td><td><code>BoardView.FixAllGroup</code> → <code>BoardState.QueueFixAll(group)</code> → nav <code>/fix-run</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Check row</td><td><code>board-row-{id}</code></td><td><code>BoardRow</code>: title, status, evidence</td><td><code>OrderRows</code> (Fail→Warn→null→Pass) over <code>Board.Groups</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Status icon+text</td><td><code>status-{id}</code></td><td><code>StatusLabel</code> — never colour alone (REQ-NFR-003)</td><td><code>BoardRow.Status</code> ← <code>CheckResult.Status</code> from <code>DetectAsync</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Row title (opens detail)</td><td><code>row-title-{id}</code></td><td>Opens <code>/check/{id}</code></td><td><code>OpenDetail</code> → <code>Nav.NavigateTo($"/check/{id}")</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Preview</td><td><code>preview-{id}</code></td><td>Opens the detail sheet</td><td><code>OpenDetail</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Fix</td><td><code>fix-{id}</code></td><td>Only for non-manual checks; disabled while a fix runs</td><td><code>FixRowAsync</code> → <code>BoardState.FixRowAsync</code> → <code>FixPipeline.RunAsync(check)</code> (consent) → <code>Check.FixAsync</code> → <code>VerifyAsync</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Open guide</td><td><code>guide-{id}</code></td><td>Only for <code>Check.IsManualOnly</code> (<code>FixAsync == null</code>)</td><td><code>OpenGuide</code> → <code>Explain.DocLink</code> or <code>/check/{id}</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Re-check this row</td><td><code>recheck-{id}</code></td><td>Single-row spinner while checking</td><td><code>RecheckRowAsync</code> → <code>BoardState.RecheckRowAsync</code> → <code>CheckEngine.RecheckRowAsync</code> → <code>Check.DetectAsync</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Empty state</td><td><code>BoardEmpty</code></td><td>Shown when no in-scope groups</td><td><code>VisibleGroups.Count == 0</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Enumeration error</td><td><code>SweepError</code></td><td><code>BoardState.SweepError</code> (engine/build failure)</td><td>set in <code>BoardState.StartSweep</code> catch</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="board-groups-as-built-a-gotcha">Board groups as built (a gotcha)<a class="anchor-link" href="#board-groups-as-built-a-gotcha">#</a></h3>
+
+    <p>The mockup grouped rows as <em>Framework core / Bridges / &lt;App&gt; profile / Build &amp; run</em>. <strong>As built</strong>, rows group by <code>Check.Category</code>, and most categories resolve to <code>BoardCategories.FrameworkCore</code>:</p>
+
+    <ul>
+      <li><strong>Framework core</strong> — all WSL/Windows/Mac catalog checks, the appium-config check, the Mac Catalyst build fixer row (<code>MacCheckBase.Category =&gt; FrameworkCore</code>), <strong>and</strong> the typed profile rows (<code>ProfileCheck.Category =&gt; FrameworkCore</code>: sdk / workload / cli-tool / endpoint / nuget-feed / env-secret / appium-head).</li>
+      <li><strong>Bridges (cross-machine)</strong> — the two HTTP <code>/status</code> probes (<code>WslWindowsAppiumCheck</code>, <code>WslMacAppiumCheck</code>).</li>
+      <li><strong>Services / Runtimes / Capacity</strong> — only the <em>heavy</em> profile requirement types (<code>ProfileBoardCategories</code>): Postgres+PgVector and ffmpeg → <strong>Services</strong>; ComfyUI runtime-install → <strong>Runtimes</strong>; disk-space floor → <strong>Capacity</strong>.</li>
+    </ul>
+
+    <p>So when AppStudio/TrStudio is selected, its profile rows fold into <strong>Framework core</strong> (typed) plus <strong>Services/Runtimes/Capacity</strong> (heavy) — there is no literal "AppStudio profile" heading in the DOM. Trace it in <code>CheckCatalog.CreateAllChecks</code> → <code>AppendProfileChecks</code>.</p>
+
+    <h3 id="key-user-flows">Key user flows<a class="anchor-link" href="#key-user-flows">#</a></h3>
+
+    <ul>
+      <li><strong>Re-check all</strong> → <code>RecheckAllButton</code> → <code>BoardState.RecheckAll</code> → <code>StartSweep</code> → <code>CheckEngine.BuildBoard</code> + <code>RunDetectSweepAsync</code> (all probes parallel, 5 s cap, rows stream via <code>RowChanged</code>).</li>
+      <li><strong>Switch role / app</strong> → <code>RolesSelector</code> / <code>AppSelector</code> → <code>BoardState.RescopeAsync</code> rebuilds the board <strong>without a page reload</strong> and persists to the settings file (<code>JsonSettingsStore.SaveAsync</code>), then sweeps.</li>
+      <li><strong>Fix one row</strong> → <code>fix-{id}</code> → <code>BoardState.FixRowAsync</code> → consent-gated <code>FixPipeline.RunAsync</code> → <code>Check.FixAsync</code> → <code>VerifyAsync</code>; a non-green re-verify is recorded as <strong>FAILED with raw output</strong> and the row re-checks itself.</li>
+      <li><strong>Fix a whole group</strong> → <code>fix-all-{slug}</code> queues the group's fixable rows and navigates to <code>/fix-run</code> (see below).</li>
+    </ul>
+
+    <h3 id="mobile">Mobile<a class="anchor-link" href="#mobile">#</a></h3>
+
+    <p><img src="screenshots/TrSetup/board-mobile.png" alt="Board dashboard — mobile 390px" style="max-width:100%;border:1px solid var(--line);border-radius:8px"></p>
+
+    <p>⚠ <strong>visual: status-table overflows at 390px, desktop clean.</strong> All data renders and the per-row Fix / re-check buttons are reachable via horizontal scroll, but they sit past the 390px viewport. TrSetup is a desktop/WSL/Mac dev tool, so desktop is the real target; mobile responsive polish is a future item, not a TrBlazeUI defect (checklist REQ-UI-001).</p>
+
+    <h2 id="screen-check-detail-sheet">Screen: Check detail sheet<a class="anchor-link" href="#screen-check-detail-sheet">#</a></h2>
+
+    <p><strong>Route:</strong> <code>/check/{id}</code> — <code>src/TrSetupUI/Pages/CheckDetail.razor</code>. Renders the board underneath a right-side sheet; <strong>deep-linkable</strong> (any <code>board-row-{id}</code> id lands directly). REQ-UI-002.</p>
+
+    <p><em>Screenshot pending (not re-captured this pass — the desktop verify screenshot lives only in the transient <code>test-results/</code> run; render + visual gate passed 2026-07-07 per checklist REQ-UI-002, deep link <code>/check/wsl.winrun</code>).</em></p>
+
+    <h3 id="controls-2">Controls<a class="anchor-link" href="#controls-2">#</a></h3>
+
+    <table>
+      <thead><tr><th>Control</th><th><code>data-testid</code></th><th>Renders</th><th>Source chain</th><th>Render status</th></tr></thead>
+      <tbody>
+        <tr><td>Sheet container</td><td><code>CheckSheet</code> (dimmer <code>CheckSheetOverlay</code>)</td><td>The <code>BoardRow</code> resolved from the route id</td><td><code>Board.FindRow(CheckId)</code> → <code>Board.Rows.FirstOrDefault(id)</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Title + id + status</td><td><code>SheetTitle</code></td><td><code>Check.Title</code>, <code>Category</code>, <code>Id</code>, <code>StatusLabel</code></td><td><code>BoardRow.Check</code> / <code>.Status</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Why it's needed</td><td><code>SheetExplain</code> (+ <code>SheetDocLink</code>)</td><td><code>Check.Explain.What/Why/DocLink</code></td><td><code>Check.Explain</code> (<code>CheckExplanation</code>)</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Detect evidence</td><td><code>SheetEvidence</code></td><td><code>BoardRow.Evidence</code> + <code>LastDetectedAt</code></td><td>populated by <code>CheckEngine</code> from <code>DetectAsync</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Fix preview (copyable)</td><td><code>SheetFixPreview</code> (copy <code>SheetCopyButton</code>)</td><td><code>Check.FixPreview</code> (literal command/URL)</td><td><code>Check.FixPreview</code>; copy → <code>navigator.clipboard</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Manual notice</td><td><code>SheetManualNotice</code></td><td>Shown when <code>Check.IsManualOnly</code></td><td><code>FixAsync == null</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Last run output (collapsible)</td><td><code>SheetLastRunToggle</code> → <code>SheetLastRun</code> / <code>SheetNoRuns</code></td><td>Command, raw stdout/stderr, exit + re-verify, timestamp</td><td><code>BoardState.LastRunFor(id)</code> → <code>BoardFixRun</code> (recorded by <code>FixRowAsync</code>)</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Fix (footer)</td><td><code>SheetFixButton</code></td><td>Non-manual only</td><td><code>BoardState.FixRowAsync</code> → <code>FixPipeline</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Re-check (footer)</td><td><code>SheetRecheckButton</code></td><td>Re-detects the single row</td><td><code>BoardState.RecheckRowAsync</code> → <code>CheckEngine.RecheckRowAsync</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Close</td><td><code>SheetCloseButton</code> / <code>SheetCloseFooter</code></td><td>Back to <code>/</code></td><td><code>Nav.NavigateTo("/")</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="key-flow">Key flow<a class="anchor-link" href="#key-flow">#</a></h3>
+
+    <p>Row click on the board (<code>row-title-{id}</code> / <code>preview-{id}</code>) → <code>/check/{id}</code> → <code>BoardState.FindRow</code> resolves the row <strong>from the live board in the current scope</strong> (so a deep link to an out-of-scope id shows nothing). The "Last run output" pane reads <code>BoardState.LastRunFor(id)</code>, which is only populated after a <code>FixRowAsync</code> completes with <code>Fixed</code>/<code>Failed</code> — before any fix it shows <code>SheetNoRuns</code>.</p>
+
+    <h2 id="screen-first-run-role-picker">Screen: First-run role picker<a class="anchor-link" href="#screen-first-run-role-picker">#</a></h2>
+
+    <p><strong>Route:</strong> <code>/setup</code> — <code>src/TrSetupUI/Pages/Setup.razor</code>. Shown automatically when no settings file exists (<code>BoardComponentBase</code> redirect on <code>NeedsSetup</code>); reachable later from the sidebar. REQ-UI-003.</p>
+
+    <p><em>Screenshot pending (desktop + mobile verify screenshots were captured to transient <code>test-results/</code>; render + visual gate passed 2026-07-07 per checklist REQ-UI-003 — 4 role cards render at desktop + mobile).</em></p>
+
+    <h3 id="controls-3">Controls<a class="anchor-link" href="#controls-3">#</a></h3>
+
+    <table>
+      <thead><tr><th>Control</th><th><code>data-testid</code></th><th>Renders</th><th>Source chain</th><th>Render status</th></tr></thead>
+      <tbody>
+        <tr><td>Role card ×4</td><td><code>role-card-{key}</code></td><td><code>RoleCatalog.Roles</code> (agent-host-wsl, device-host-windows, device-host-mac, app-runner-mac) with title + one-line description</td><td>local <code>objRoles</code> flags; keyboard-navigable (<code>role=checkbox</code>, <code>tabindex</code>, Enter/Space)</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Native-dev switch</td><td><code>NativeDevSwitch</code></td><td>Toggles <code>MachineRole.NativeDev</code> (drops WSL-bridge checks)</td><td>binds <code>objIsNativeDev</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Default app select</td><td><code>SetupAppSelect</code></td><td><code>RoleCatalog.Apps</code></td><td>binds <code>objApp</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Save &amp; scan</td><td><code>SetupSaveButton</code></td><td>Disabled until ≥1 base role (<code>HasBaseRole</code>)</td><td><code>SaveAsync</code> → <code>BoardState.SaveSetupAsync(roles, app)</code> → <code>ISettingsStore.SaveAsync</code> (<code>JsonSettingsStore</code>) → <code>StartSweep</code> → nav <code>/</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Save error</td><td><code>SetupSaveError</code></td><td>Exception message on write failure</td><td>catch in <code>SaveAsync</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="key-flow-2">Key flow<a class="anchor-link" href="#key-flow-2">#</a></h3>
+
+    <p><strong>Save</strong> → <code>BoardState.SaveSetupAsync</code> persists roles + app to the JSON settings file (<code>%APPDATA%\TrSetup\settings.json</code> on Windows, <code>~/.trsetup/settings.json</code> elsewhere), clears <code>IsFirstRun</code>, starts the sweep, and navigates to the board. Note the native-dev variant is <strong>not</strong> a role card — it is OR-ed into the flags in <code>SaveAsync</code> (<code>objRoles | MachineRole.NativeDev</code>).</p>
+
+    <h2 id="screen-fix-all-run-view">Screen: Fix-all run view<a class="anchor-link" href="#screen-fix-all-run-view">#</a></h2>
+
+    <p><strong>Route:</strong> <code>/fix-run</code> — <code>src/TrSetupUI/Pages/FixRun.razor</code>. Runs the queued fix-all plan in dependency order with a per-step consent gate. REQ-UI-004.</p>
+
+    <p><em>Screenshot pending (verify screenshot was captured to transient <code>test-results/</code>; render + visual gate passed 2026-07-07 per checklist REQ-UI-004 — consent gate blocks execution, nothing ran; empty state verified).</em></p>
+
+    <h3 id="controls-4">Controls<a class="anchor-link" href="#controls-4">#</a></h3>
+
+    <table>
+      <thead><tr><th>Control</th><th><code>data-testid</code></th><th>Renders</th><th>Source chain</th><th>Render status</th></tr></thead>
+      <tbody>
+        <tr><td>Empty state</td><td><code>FixRunEmpty</code> (+ <code>FixRunBackButton</code>)</td><td>Shown when nothing queued and board green</td><td><code>FixAllSteps.Count == 0 &amp;&amp; !IsFixAllRunning &amp;&amp; FixAllResult is null</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Run header + progress</td><td><code>FixRunHeader</code></td><td><code>FixAllTotalSteps</code>, Running/Complete/Halted badge, % bar, current step</td><td><code>BoardState.FixAllCurrentStep / FixAllTotalSteps</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Step row</td><td><code>fix-step-{id}</code></td><td>Each <code>FixAllStepView</code>: number, icon/spinner, title, result reason</td><td><code>BoardState.FixAllSteps</code> ← <code>FixAllRunner</code> step updates</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Consent gate</td><td><code>consent-{id}</code> (<code>approve-{id}</code> / <code>decline-{id}</code>)</td><td>Exact command (<code>Check.FixPreview</code>) + Approve/Decline, only for the active step needing consent</td><td><code>Board.Consent.PendingCheck</code> (<code>UiConsentProvider</code>); Approve → <code>Consent.Approve()</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Step output</td><td><code>output-{id}</code></td><td>Raw fixer stdout/stderr</td><td><code>FixAllStepResult.PipelineResult.RawOutput</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Summary</td><td><code>FixRunSummary</code></td><td>All-green vs Halted + halt reason</td><td><code>BoardState.FixAllResult</code> (<code>FixAllRunResult</code>)</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Stop run</td><td><code>StopRunButton</code></td><td>Only while running</td><td><code>RequestStopFixAll</code> → <code>Consent.Decline()</code> + cancel CTS</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Done / back</td><td><code>FixRunDoneButton</code></td><td>After the run</td><td>nav <code>/</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="key-flow-3">Key flow<a class="anchor-link" href="#key-flow-3">#</a></h3>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart TB
+  Q(["Fix all clicked on board"]) --&gt; Queue["BoardState.QueueFixAll(group)"]
+  Queue --&gt; Nav["navigate to /fix-run"]
+  Nav --&gt; Start["OnAfterRender → RunFixAllAsync (once)"]
+  Start --&gt; Order["FixAllPlanner.Order&lt;br/&gt;(topo: Node before Appium, SDK before AVD)"]
+  Order --&gt; Run["FixAllRunner.RunAsync (StopOnFailure)"]
+  Run --&gt; Gate{"step needs consent?"}
+  Gate --&gt;|"yes"| Consent["UiConsentProvider.PendingCheck&lt;br/&gt;renders consent-{id}"]
+  Consent --&gt;|"Approve"| Fix["FixPipeline → Check.FixAsync → VerifyAsync"]
+  Consent --&gt;|"Decline / Stop"| Halt["halt — later steps untouched"]
+  Gate --&gt;|"no"| Fix
+  Fix --&gt; More{"more steps?"}
+  More --&gt;|"yes"| Run
+  More --&gt;|"no"| Refresh["re-check fixed rows on the board"]</pre>
+    </div>
+
+    <p><code>RunFixAllAsync</code> orders the queue via <code>FixAllPlanner.Order</code> (falls back to queue order if the graph is cyclic), streams per-step updates into <code>FixAllSteps</code> through a synchronous <code>IProgress&lt;FixAllStepUpdate&gt;</code>, and on completion re-checks every <code>Fixed</code> row on the live board (<code>RefreshFixedRowsAsync</code>). A declined consent or <strong>Stop run</strong> cancels the CTS and leaves later steps as <code>null</code> status (untouched) — the halt contract (REQ-FN-019).</p>
+
+    <h2 id="screen-report-preview">Screen: Report preview<a class="anchor-link" href="#screen-report-preview">#</a></h2>
+
+    <p><strong>Route:</strong> <code>/report</code> — <code>src/TrSetupUI/Pages/Report.razor</code>. Renders the board as a secret-free report with per-group evidence tables and MD/HTML export. REQ-UI-005.</p>
+
+    <p><em>Screenshot pending (verify screenshot was captured to transient <code>test-results/</code>; render + visual gate passed 2026-07-07 per checklist REQ-UI-005 — group tables render, no-secrets spot-check passed).</em></p>
+
+    <h3 id="controls-5">Controls<a class="anchor-link" href="#controls-5">#</a></h3>
+
+    <table>
+      <thead><tr><th>Control</th><th><code>data-testid</code></th><th>Renders</th><th>Source chain</th><th>Render status</th></tr></thead>
+      <tbody>
+        <tr><td>Empty state</td><td><code>ReportEmpty</code></td><td>Shown until a sweep has produced any detected row</td><td><code>HasAnyDetected(Board.Board)</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Save as .md</td><td><code>SaveMarkdownButton</code></td><td>Writes <code>TrSetup-Report-{host}.md</code> to CWD</td><td><code>SaveAsync(false)</code> → <code>ReportExporter.BuildMarkdown(board, host)</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Save as .html</td><td><code>SaveHtmlButton</code></td><td>Writes <code>.html</code> via the shared doc shell</td><td><code>SaveAsync(true)</code> → <code>ReportExporter.BuildHtml</code> (<code>ReportHtmlShell</code>)</td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Copy markdown</td><td><code>CopyReportButton</code></td><td>Copies MD to clipboard</td><td><code>ReportExporter.BuildMarkdown</code> → <code>navigator.clipboard</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Report body</td><td><code>ReportPreview</code></td><td>Host / roles / app header + count badges</td><td><code>Environment.MachineName</code>, <code>RolesText</code>, <code>TotalPass/Warn/Fail</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+        <tr><td>Per-group table</td><td><code>report-table-{slug}</code> (rows <code>report-row-{id}</code>)</td><td>Status / Check / Evidence per in-scope row</td><td><code>Board.Groups[].Rows.Where(IsInScope)</code></td><td>renders ✓ runtime-confirmed 2026-07-07</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="secret-handling-req-nfr-002-brd-25">Secret handling (REQ-NFR-002 / BRD-25)<a class="anchor-link" href="#secret-handling-req-nfr-002-brd-25">#</a></h3>
+
+    <p>Rows whose id or title contains "secret" are flagged <code>presence-only</code> and their evidence is hard-replaced with <code>"present (value never shown)"</code> in <code>Report.razor</code>'s <code>Evidence()</code> — the raw value never reaches the preview, the exported MD/HTML, or the clipboard. The <code>ReportExporter</code> in Core applies the same discipline. This is why <code>env-secret</code> profile rows (AppManager/RunPod/HeyGen keys) only ever show presence status.</p>
+
+    <h2 id="screen-settings-configuration">Screen: Settings / Configuration<a class="anchor-link" href="#screen-settings-configuration">#</a></h2>
+
+    <p><strong>Route:</strong> <code>/settings</code> — <code>src/TrSetupUI/Pages/Settings.razor</code> (the 6th screen). The full post-CLI config surface: machine roles, the selected app profile, named endpoint addresses (today the LAN Mac IP), a read-only source-tagged profile-details table, the settings-file path, and Save / Cancel. Reachable from the sidebar nav (<code>data-testid="NavSettings"</code>, a distinct <code>sliders</code> icon). On Save the board re-scopes to the new roles/app/endpoints <strong>without a page reload</strong>. REQ-UI-006.</p>
+
+    <p><em>Screenshot pending <code>devguide --update</code> (no capture file exists yet; render + visual gate passed 2026-07-09 per <code>tests/verify/settings.spec.ts</code>).</em></p>
+
+    <h3 id="controls-6">Controls<a class="anchor-link" href="#controls-6">#</a></h3>
+
+    <table>
+      <thead><tr><th>Control</th><th><code>data-testid</code></th><th>Renders</th><th>Source chain</th><th>Render status</th></tr></thead>
+      <tbody>
+        <tr><td>Role card ×4</td><td><code>role-card-{key}</code></td><td><code>RoleCatalog.Roles</code> (agent-host-wsl, device-host-windows, device-host-mac, app-runner-mac) with title + one-line description; keyboard-navigable (<code>role=checkbox</code>, Enter/Space) — same pattern as <code>/setup</code></td><td>local <code>objRoles</code> flags (<code>ToggleRole</code>)</td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+        <tr><td>Native-dev switch</td><td><code>NativeDevSwitch</code></td><td>Toggles <code>MachineRole.NativeDev</code> (drops WSL-bridge checks)</td><td>binds <code>objIsNativeDev</code></td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+        <tr><td>App profile select</td><td><code>SettingsAppSelect</code></td><td><code>RoleCatalog.Apps</code> (Framework only / AppStudio / TrStudio)</td><td>binds <code>objApp</code>; <code>OnAppChanged</code> reloads the profile pane (<code>LoadProfile</code>)</td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+        <tr><td>Endpoint input (Mac IP)</td><td>wrapper <code>endpoint-MacIp</code>, <code>&lt;input&gt;</code> <code>endpoint-input-MacIp</code>, error <code>endpoint-error-MacIp</code></td><td>The editable <code>MacIp</code> value; validates IP/hostname (blank allowed) — invalid → error + Save disabled</td><td><code>objEndpoints["MacIp"]</code> (pre-filled from <code>BoardState.Endpoints</code>); <code>IsValidEndpoint</code></td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+        <tr><td>Profile details (read-only)</td><td><code>SettingsProfileDetails</code> → table <code>SettingsProfileTable</code>, rows <code>profile-req-{id}</code>, Source badge <code>profile-src-{id}</code>; <code>SettingsProfileEmpty</code> when framework-only</td><td>Per-requirement id / type / roles + a <strong>Source</strong> badge (built-in vs app-repo override)</td><td><code>ProfileLoader.ResolveWithSources(app)</code> → <code>IReadOnlyList&lt;ResolvedRequirement&gt;</code> (each = <code>ProfileRequirement</code> + <code>RequirementSource {BuiltIn|Override}</code>) — a read-only companion to <code>Resolve</code> (merge behaviour unchanged)</td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+        <tr><td>Settings-file path footer</td><td><code>SettingsFilePath</code></td><td>The absolute settings-file path</td><td><code>ISettingsStore.SettingsFilePath</code></td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+        <tr><td>Save</td><td><code>SettingsSaveButton</code></td><td>Persists roles + app + endpoints, then re-scopes</td><td><code>Board.SaveSettingsAsync(roles, app, endpoints)</code> → sets <code>objSettings.Endpoints</code> → <code>TrySaveSettingsAsync</code> (<code>JsonSettingsStore</code>) → re-scopes the board WITHOUT reload</td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+        <tr><td>Save error</td><td><code>SettingsSaveError</code></td><td>Exception message on write failure</td><td>catch in <code>SaveAsync</code></td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+        <tr><td>Cancel / Back</td><td><code>SettingsCancelButton</code>, <code>SettingsBackButton</code></td><td>Return to the board (<code>/</code>)</td><td><code>Nav.NavigateTo("/")</code></td><td>renders ✓ (runtime-confirmed 2026-07-09)</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>looks-right ✓ (runtime-confirmed 2026-07-09, desktop; mobile overflow = documented UI-001 caveat).</strong></p>
+
+    <h3 id="data-chain">Data chain<a class="anchor-link" href="#data-chain">#</a></h3>
+
+    <p><code>Settings.razor</code> → <code>BoardState.SaveSettingsAsync</code> / <code>BoardState.Endpoints</code> (read accessor <code>=&gt; objSettings.Endpoints</code>) → <code>JsonSettingsStore</code>. The profile pane goes <code>Settings.razor</code> → <code>ProfileLoader.ResolveWithSources(app)</code>, which returns the same merged requirements as <code>Resolve</code> plus a <code>RequirementSource</code> tag per row (built-in vs app-repo override) — a read-only companion; the merge behaviour is unchanged. Because <code>BoardState</code> mutates the same <code>objSettings</code> singleton the checks read live, saving new endpoint values (e.g. the Mac IP the Bridges probes target) is seen immediately by the next detect sweep — no reload.</p>
+
+    <h2 id="how-the-app-is-hosted">How the app is hosted<a class="anchor-link" href="#how-the-app-is-hosted">#</a></h2>
+
+    <p>TrSetup ships as <strong>one head</strong>: <code>TrSetup</code>, a MAUI Blazor Hybrid desktop app.</p>
+
+    <ul>
+      <li><code>src/TrSetup</code> — MAUI Blazor Hybrid; Windows unpackaged exe (<code>WindowsPackageType=None</code>) + Mac Catalyst (ad-hoc signed). Hosts the <code>TrSetupUI</code> RCL via a <code>BlazorWebView</code> — all six screens above render unchanged in the native window; the head contains no screen code.</li>
+      <li>Entry: <code>MauiProgram.CreateMauiApp</code> (<code>src/TrSetup/MauiProgram.cs</code>) registers exactly what the shared screens need — <code>ProcessRunner</code>, <code>JsonSettingsStore</code>, <code>CheckEngine</code> (built from <code>CheckCatalog.CreateAllChecks</code>), <code>ReportExporter</code>, TrBlazeUI primitives + <code>ToastService</code>, and the scoped <code>BoardState</code>. This is the one place head-level wiring lives.</li>
+      <li><strong>Serilog file logging (REQ-NFR-007, built).</strong> <code>CreateMauiApp</code> wires Serilog: a daily-rolling file sink at <code>FileSystem.AppDataDirectory/logs/trsetup-.log</code> (≈14-file retention) plus a Debug sink; <code>builder.Logging.ClearProviders()</code> + <code>AddSerilog(dispose:true)</code> route the shared <code>TrSetupUI</code>/<code>TrSetup.Core</code> <code>ILogger&lt;T&gt;</code> events into the sink (the libraries keep the <code>Microsoft.Extensions.Logging</code> abstractions only — no Serilog reference). A startup line logs the app version/build; <code>AppDomain.CurrentDomain.UnhandledException</code> + <code>TaskScheduler.UnobservedTaskException</code> are hooked to <code>Log.Fatal</code>; <code>Log.CloseAndFlush()</code> runs on <code>Window.Destroying</code> in <code>src/TrSetup/App.xaml.cs</code>. <strong>Where are the logs:</strong> on unpackaged Windows, <code>%LOCALAPPDATA%\...\com.techierathore.trsetup\Data\logs\trsetup-&lt;yyyyMMdd&gt;.log</code>.</li>
+      <li><strong>AutomationIds</strong> for Appium (REQ-NFR-005, MAUI half): <code>MainPage.xaml</code> → <code>ContentPage AutomationId="TrSetupMainPage"</code>, <code>BlazorWebView AutomationId="TrSetupBlazorWebView"</code>. Drive the native head only through a session bound to the launched app's own window (see CLAUDE.md Hard rule 3), never global input injection.</li>
+    </ul>
+
+    <h3 id="withdrawn-head-the-test-only-smoke-host">Withdrawn head + the test-only smoke host<a class="anchor-link" href="#withdrawn-head-the-test-only-smoke-host">#</a></h3>
+
+    <blockquote><p><strong>Done 2026-07-09 (REQ-FN-034, Verified) — single shipping MAUI head; the Spectre CLI head is REMOVED, <code>TrSetup.Web</code> is RETAINED as the test-only headless smoke host.</strong></p></blockquote>
+
+    <p>The <code>TrSetup.Cli</code> (Spectre.Console TUI + <code>--check --json</code> agent mode) head, its tests, and the <code>scripts/publish.*</code> / <code>scripts/preflight-gate.*</code> scripts have been <strong>deleted</strong> and pruned from <code>TrSetup.sln</code>; the product ships as the single MAUI app <code>TrSetup</code>. Its historical detail (TUI key map, agent-mode wire schema + exit codes) is archived in <code>docs/OldDocs/TrSetup-AgentMode.md</code>.</p>
+
+    <p><code>TrSetup.Web</code> (Blazor Server / Kestrel :5999) is <strong>retained but reclassified</strong> from a shipping head to the <strong>test-only headless UI smoke host</strong> (owner decision): <code>playwright.config.ts</code> boots it on :5999 for the verify suite, it hosts the same <code>TrSetupUI</code> RCL so the render + visual gates exercise the real screens, and it now respects <code>TRSETUP_NO_BROWSER=1</code> so it does not auto-open a browser under the harness. It is not shipped to users.</p>
+
+    <h2 id="where-things-live">Where things live<a class="anchor-link" href="#where-things-live">#</a></h2>
+
+    <table>
+      <thead><tr><th>Feature</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td>Board dashboard screen</td><td><code>src/TrSetupUI/Pages/Home.razor</code> + <code>Components/BoardView.razor</code></td></tr>
+        <tr><td>Check detail sheet</td><td><code>src/TrSetupUI/Pages/CheckDetail.razor</code></td></tr>
+        <tr><td>Role picker</td><td><code>src/TrSetupUI/Pages/Setup.razor</code></td></tr>
+        <tr><td>Fix-all run view</td><td><code>src/TrSetupUI/Pages/FixRun.razor</code></td></tr>
+        <tr><td>Report preview</td><td><code>src/TrSetupUI/Pages/Report.razor</code></td></tr>
+        <tr><td>Settings / configuration</td><td><code>src/TrSetupUI/Pages/Settings.razor</code></td></tr>
+        <tr><td>Per-circuit UI state (the hub)</td><td><code>src/TrSetupUI/Services/BoardState.cs</code></td></tr>
+        <tr><td>Role / app vocabularies</td><td><code>src/TrSetupUI/Services/RoleCatalog.cs</code></td></tr>
+        <tr><td>First-run redirect + re-render base</td><td><code>src/TrSetupUI/Components/BoardComponentBase.cs</code></td></tr>
+        <tr><td>GUI consent gate</td><td><code>src/TrSetupUI/Services/UiConsentProvider.cs</code></td></tr>
+        <tr><td>Fix-all step view model</td><td><code>src/TrSetupUI/Services/FixAllStepView.cs</code></td></tr>
+        <tr><td>Status icon+text</td><td><code>src/TrSetupUI/Components/StatusLabel.razor</code></td></tr>
+        <tr><td>Check contract</td><td><code>src/TrSetup.Core/Checks/Check.cs</code></td></tr>
+        <tr><td>Engine (scope + sweep)</td><td><code>src/TrSetup.Core/Engine/CheckEngine.cs</code></td></tr>
+        <tr><td>Board model</td><td><code>src/TrSetup.Core/Engine/CheckBoard.cs</code>, <code>BoardGroup.cs</code>, <code>BoardRow.cs</code></td></tr>
+        <tr><td>Full built-in catalog</td><td><code>src/TrSetup.Core/Catalog/CheckCatalog.cs</code></td></tr>
+        <tr><td>WSL / Windows / Mac checks</td><td><code>src/TrSetup.Core/Catalog/{Wsl,Windows,Mac}/</code></td></tr>
+        <tr><td>Cross-machine probes</td><td><code>src/TrSetup.Core/Catalog/Probing/</code></td></tr>
+        <tr><td>Board group names</td><td><code>src/TrSetup.Core/Catalog/BoardCategories.cs</code>, <code>Profiles/ProfileBoardCategories.cs</code></td></tr>
+        <tr><td>Declarative profiles + factory</td><td><code>src/TrSetup.Core/Profiles/</code> (<code>ProfileLoader</code>, <code>ProfileCheckFactory</code>, <code>Handlers/</code>)</td></tr>
+        <tr><td>Process runner (choke-point)</td><td><code>src/TrSetup.Core/Processes/ProcessRunner.cs</code></td></tr>
+        <tr><td>Fix pipeline (consent + re-verify)</td><td><code>src/TrSetup.Core/Fixing/FixPipeline.cs</code></td></tr>
+        <tr><td>Fix-all runner + planner</td><td><code>src/TrSetup.Core/FixAll/FixAllRunner.cs</code>, <code>FixAllPlanner.cs</code></td></tr>
+        <tr><td>Elevation (UAC child / sudo handoff)</td><td><code>src/TrSetup.Core/Elevation/ElevationRunner.cs</code></td></tr>
+        <tr><td>Installer download + checksum</td><td><code>src/TrSetup.Core/Downloads/InstallerDownloader.cs</code>, <code>TrSetupPaths.cs</code></td></tr>
+        <tr><td>Idempotent config writes</td><td><code>src/TrSetup.Core/ConfigWriting/ManagedBlockWriter.cs</code></td></tr>
+        <tr><td>Report exporter</td><td><code>src/TrSetup.Core/Reporting/ReportExporter.cs</code>, <code>ReportHtmlShell.cs</code></td></tr>
+        <tr><td>Settings persistence (JSON)</td><td><code>src/TrSetup.Core/Settings/JsonSettingsStore.cs</code></td></tr>
+        <tr><td>MAUI head + AutomationIds + Serilog wiring</td><td><code>src/TrSetup/MainPage.xaml</code>, <code>MauiProgram.cs</code>, <code>App.xaml.cs</code></td></tr>
+        <tr><td>Test-only headless smoke host (not shipped)</td><td><code>src/TrSetup.Web/</code> (booted on :5999 by <code>playwright.config.ts</code>; respects <code>TRSETUP_NO_BROWSER</code>)</td></tr>
+        <tr><td>Removed CLI head (archived agent-mode spec)</td><td><code>docs/OldDocs/TrSetup-AgentMode.md</code> (deleted under REQ-FN-034: <code>src/TrSetup.Cli/</code>, <code>scripts/publish.*</code>, <code>scripts/preflight-gate.*</code>)</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="known-issues-and-gotchas">Known issues and gotchas<a class="anchor-link" href="#known-issues-and-gotchas">#</a></h2>
+
+    <ol>
+      <li><p><strong>Board mobile overflow (⚠ visual).</strong> At 390px the status table overflows horizontally; per-row Fix / re-check buttons sit past the viewport (reachable via horizontal scroll — all data renders). Desktop is clean and is the real target for a dev tool. Future responsive polish, not a library defect. (Checklist REQ-UI-001.)</p></li>
+      <li><p><strong>8 host/destructive UAT items pending.</strong> The live fix runs (<code>REQ-FN-014</code> WSL, <code>REQ-FN-015</code> Windows, <code>REQ-FN-016</code> Mac auto-installers; <code>REQ-FN-025</code> ComfyUI download, <code>REQ-FN-026</code> Postgres/ffmpeg install), the <code>REQ-FN-008</code> Mac detects live run, the <code>REQ-FN-028</code> Mac Catalyst build, and the <code>REQ-FN-030</code> MAUI GUI <strong>visual</strong> boot are marked <em>Implemented</em> (75–90%) rather than <em>Verified</em>: they can only be exercised on the owning box (a real Windows/Mac desktop, or a destructive install on a clean machine). The detect logic and fixer plumbing are unit-tested and the previews render live; only the irreversible/host-bound clauses remain. (Checklist "Status values" legend + those REQ rows.)</p></li>
+      <li><p><strong>PCA manifest fix for the Windows exe.</strong> The unpackaged exe is named <code>TrSetup.exe</code>; because the name contains "Setup", Windows' Program Compatibility Assistant installer-detection heuristic false-fired the "This program might not have installed correctly" popup. Fixed by embedding a proper Win32 manifest — <code>Platforms/Windows/app.manifest</code> carries <code>&lt;compatibility&gt;</code> supportedOS (Win7→11) + <code>asInvoker &lt;trustInfo&gt;</code>, now referenced via a windows-scoped <code>&lt;ApplicationManifest&gt;</code> in the csproj (it was previously unreferenced, so not embedded). Rung-#4 rebuild verified all four manifest markers embedded. (Checklist REQ-FN-030.)</p></li>
+      <li><p><strong>Profile rows do not get their own board heading.</strong> Typed profile requirements render under <strong>Framework core</strong> (<code>ProfileCheck.Category =&gt; FrameworkCore</code>), not under an "&lt;App&gt; profile" group; only heavy types split into Services / Runtimes / Capacity. If you expect a per-app group and don't find one, that is why — see <a href="#board-groups-as-built-a-gotcha">Board groups as built</a>.</p></li>
+      <li><p><strong><code>TrSetup.Web</code> is a test fixture, not a head (REQ-FN-034 done).</strong> The Spectre CLI head, its tests, and the publish / pre-flight scripts are <strong>deleted</strong> and pruned from the solution; the product ships only as <code>TrSetup</code>. <code>TrSetup.Web</code> survives solely as the test-only headless smoke host the Playwright verify suite boots on :5999 (it respects <code>TRSETUP_NO_BROWSER=1</code>) — do not treat it as a shipping head, extend it as one, or document against it. The removed CLI agent-mode contract is archived in <code>docs/OldDocs/TrSetup-AgentMode.md</code>.</p></li>
+      <li><p><strong>Git is manual.</strong> Per CLAUDE.md, no agent runs <code>git</code>/<code>gh</code>. Evidence for "what changed" is the working-tree files + a fresh <code>dotnet build</code> + the checklist table — not <code>git log</code>. The owner commits.</p></li>
+    </ol>
+
+    <hr>
+    <p><em>Generated 2026-07-07 · Last updated 2026-07-09 (MAUI-only rescope + Settings screen — single shipping <code>TrSetup</code> head; CLI head removed under REQ-FN-034, <code>TrSetup.Web</code> retained as the test-only smoke host; Serilog file logging + the 6th <code>/settings</code> screen now Verified). All 6 screens documented from the as-built <code>TrSetupUI</code> RCL; engine chain traced through <code>TrSetup.Core</code>. Board screenshots are the 2026-07-07 verify-pass captures; the other screens' captures live only in the transient <code>test-results/</code> run and are noted "screenshot pending" (render + visual gates passed 2026-07-09 per the checklist). Render to HTML via the html-render-shell (<code>docs/TrSetup-DevGuide.html</code>).</em></p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

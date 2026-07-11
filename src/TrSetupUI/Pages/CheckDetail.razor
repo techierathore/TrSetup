@@ -1,0 +1,140 @@
+@page "/check/{CheckId}"
+@inherits BoardComponentBase
+@inject IJSRuntime Js
+@inject ToastService Toast
+
+@* Check detail sheet (REQ-UI-002): the board renders beneath a right-side sheet showing
+   Explain · Detect evidence · Fix preview · Last run output. Deep-linkable via /check/{id}. *@
+<PageTitle>TrSetup — Check detail</PageTitle>
+
+<BoardView />
+
+@if (Row is { } vRow)
+{
+    <div class="ts-sheet-overlay" data-testid="CheckSheetOverlay" @onclick="Close"></div>
+    <aside class="ts-sheet-panel ts-sheet" role="dialog" aria-label="Check detail" data-testid="CheckSheet">
+        <header class="ts-sheet-h">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+                <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                        <span class="ts-sheet-title" data-testid="SheetTitle">@vRow.Check.Title</span>
+                        <StatusLabel Status="vRow.Status" IsChecking="Board.IsChecking(vRow.Check.Id)" />
+                    </div>
+                    <div class="ts-sheet-sub">@vRow.Check.Category · id: @vRow.Check.Id</div>
+                </div>
+                <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSmall" OnClick="Close" AriaLabel="Close" data-testid="SheetCloseButton">
+                    <LucideIcon Name="x" Size="16" />
+                </Button>
+            </div>
+        </header>
+
+        <div class="ts-sheet-body">
+            <section>
+                <div class="ts-sec-label">Why it's needed</div>
+                <p class="ts-prose" data-testid="SheetExplain">@vRow.Check.Explain.What @vRow.Check.Explain.Why</p>
+                @if (!string.IsNullOrWhiteSpace(vRow.Check.Explain.DocLink))
+                {
+                    <div class="ts-doclink">
+                        <Button Variant="ButtonVariant.Link" Href="@vRow.Check.Explain.DocLink" Target="_blank" data-testid="SheetDocLink">
+                            @vRow.Check.Explain.DocLink
+                            <LucideIcon Name="external-link" Size="13" />
+                        </Button>
+                    </div>
+                }
+            </section>
+
+            <section>
+                <div class="ts-sec-label">Detect evidence</div>
+                <div class="ts-evidence-card" data-testid="SheetEvidence">
+                    <div class="ts-mono">@(string.IsNullOrWhiteSpace(vRow.Evidence) ? "not yet detected" : vRow.Evidence)</div>
+                    <div class="ts-evidence-when">@(vRow.LastDetectedAt is { } vAt ? $"checked {vAt.ToLocalTime():yyyy-MM-dd HH:mm}" : "never detected")</div>
+                </div>
+            </section>
+
+            <section>
+                <div class="ts-sec-label">Fix preview</div>
+                @if (vRow.Check.IsManualOnly)
+                {
+                    <div data-testid="SheetManualNotice">
+                        <Alert Variant="AlertVariant.Info">
+                            <AlertTitle>Manual step</AlertTitle>
+                            <AlertDescription>This item has no automated fix — follow the guide above.</AlertDescription>
+                        </Alert>
+                    </div>
+                }
+                else
+                {
+                    <pre class="ts-codeblock" data-testid="SheetFixPreview"><button class="ts-copy-btn" @onclick="@(() => CopyAsync(vRow.Check.FixPreview))" title="Copy command" data-testid="SheetCopyButton"><LucideIcon Name="copy" Size="14" /></button><span class="ts-cm"># runs with your consent — exact command:</span>
+@(vRow.Check.FixPreview ?? "(no preview)")</pre>
+                }
+            </section>
+
+            <section>
+                <button class="ts-collapsible-h" style="border:1px solid var(--border);border-radius:calc(var(--radius) - 2px);width:100%" @onclick="@(() => objShowLastRun = !objShowLastRun)" data-testid="SheetLastRunToggle">
+                    <LucideIcon Name="@(objShowLastRun ? "chevron-down" : "chevron-right")" Size="14" />
+                    Last run output
+                </button>
+                @if (objShowLastRun)
+                {
+                    @if (Board.LastRunFor(vRow.Check.Id) is { } vRun)
+                    {
+                        <pre class="ts-lastrun-pre" data-testid="SheetLastRun"><span class="ts-cm">$ @vRun.Command</span>
+@(string.IsNullOrWhiteSpace(vRun.Result.RawOutput) ? "(no output captured)" : vRun.Result.RawOutput)
+
+exit: @vRun.Result.Status · re-verify: @(vRun.Result.VerifyResult?.Status.ToString() ?? "n/a")
+ran @(vRun.CompletedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"))</pre>
+                    }
+                    else
+                    {
+                        <p class="ts-muted ts-xs" style="margin:8px 0 0" data-testid="SheetNoRuns">no runs yet</p>
+                    }
+                }
+            </section>
+        </div>
+
+        <footer class="ts-sheet-f">
+            @if (!vRow.Check.IsManualOnly)
+            {
+                <Button OnClick="@(() => FixAsync(vRow))" Disabled="@(Board.IsFixing(vRow.Check.Id) || Board.IsAnyFixRunning)" data-testid="SheetFixButton">
+                    <LucideIcon Name="wrench" Size="16" />
+                    <span>Fix</span>
+                </Button>
+            }
+            <Button Variant="ButtonVariant.Outline" OnClick="@(() => RecheckAsync(vRow))" Disabled="@Board.IsChecking(vRow.Check.Id)" data-testid="SheetRecheckButton">
+                <LucideIcon Name="refresh-cw" Size="16" />
+                <span>Re-check</span>
+            </Button>
+            <div class="ts-grow"></div>
+            <Button Variant="ButtonVariant.Ghost" OnClick="Close" data-testid="SheetCloseFooter">Close</Button>
+        </footer>
+    </aside>
+}
+
+@code {
+    /// <summary>The check id from the route (deep-linkable).</summary>
+    [Parameter]
+    public string? CheckId { get; set; }
+
+    private bool objShowLastRun;
+
+    private BoardRow? Row => Board.FindRow(CheckId);
+
+    private void Close() => Nav.NavigateTo("/");
+
+    private async Task FixAsync(BoardRow aRow) => await Board.FixRowAsync(aRow);
+
+    private async Task RecheckAsync(BoardRow aRow) => await Board.RecheckRowAsync(aRow);
+
+    private async Task CopyAsync(string? aText)
+    {
+        try
+        {
+            await Js.InvokeVoidAsync("navigator.clipboard.writeText", aText ?? string.Empty);
+            Toast.Success("Command copied to clipboard.", "Copied");
+        }
+        catch (JSException)
+        {
+            Toast.Error("Could not access the clipboard.", "Copy failed");
+        }
+    }
+}

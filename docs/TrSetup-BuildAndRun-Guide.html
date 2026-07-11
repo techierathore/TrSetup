@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TrSetup — Build &amp; Run Guide — TrSetup</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TrSetup — Build &amp; Run Guide (MAUI desktop · Windows exe + Mac Catalyst app)</h1>
+    <div class="subtitle">Last rendered: 2026-07-10</div>
+
+<!-- AGENT NOTE (never emit as visible text): "Catalyst cannot be built from Windows" is a HOST limitation, not a deliverable cancellation. Never drop, declare impossible, or silently substitute the native Mac Catalyst .app because your machine can't build it — §3 Option B (the owner runs ONE command on the Mac) is the standing path: prepare the source + the exact commands and hand off. The TrSetup.Web osx-arm64 publish (§3 Option A) is a complement offered alongside, never the replacement for the native app. See build-invocation-ladder.md §"What NOT to do". Also: the head project was renamed from its old `.App`-suffixed form to plain TrSetup (`src/TrSetup/TrSetup.csproj`, exe `TrSetup.exe`) on 2026-07-10 under REQ-FN-035 (framework naming standard); this guide's paths reflect the new name. -->
+
+    <blockquote>
+      <p><strong>2026-07-09 — TrSetup is now a single MAUI desktop app (owner decision).</strong> The former Blazor Server and CLI heads are withdrawn; their code removal is tracked by REQ-FN-034 in <code>docs/TrSetup-Checklist.md</code>.</p>
+    </blockquote>
+
+    <blockquote>
+      <p><strong>Status: BUILT.</strong> The solution exists; the paths and commands below are concrete and verified against it. <code>TrSetup</code> is the one shipping head — a MAUI Blazor Hybrid desktop app hosting the <code>TrSetupUI</code> RCL over the <code>TrSetup.Core</code> engine. The <em>native</em> MAUI heads compile against each OS's native SDKs and cannot be cross-published, so the Windows exe is built on Windows (§2) and the native Mac Catalyst <code>.app</code> is built on the Mac (§3 Option B). <strong>To simply run TrSetup on a Mac without a Mac build environment</strong>, self-contained-publish the retained <code>TrSetup.Web</code> head for <code>osx-arm64</code> on Windows and copy the folder over (§3 Option A — the recommended, no-.NET-on-the-Mac path). The sibling guide <code>AppStudio-BuildAndRun-Guide.md</code> describes the same shape.</p>
+    </blockquote>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#what-trsetup-ships-as">What TrSetup ships as</a></li>
+        <li><a href="#build-the-windows-exe-visual-studio">Build the Windows exe (Visual Studio)</a></li>
+        <li><a href="#run-on-the-mac-two-paths">Run on the Mac — two paths</a>
+          <ul>
+            <li><a href="#option-a-copy-to-mac-binaries-no-net-no-xcode-on-the-mac-recommended">Option A — copy-to-Mac binaries (no .NET / no Xcode on the Mac) — recommended</a></li>
+            <li><a href="#option-b-native-catalyst-app-built-on-the-mac">Option B — native Catalyst .app (built on the Mac)</a></li>
+          </ul>
+        </li>
+        <li><a href="#troubleshooting-observed-expected">Troubleshooting (observed / expected)</a></li>
+      </ol>
+    </div>
+
+    <h2 id="what-trsetup-ships-as">1. What TrSetup ships as<a class="anchor-link" href="#what-trsetup-ships-as">#</a></h2>
+
+    <table>
+      <thead>
+        <tr><th>Head</th><th>Type</th><th>Platforms</th><th>Distribution</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>TrSetup</code></td>
+          <td>MAUI Blazor Hybrid</td>
+          <td>Windows (unpackaged exe, <code>WindowsPackageType=None</code>) + Mac Catalyst (<code>net10.0-maccatalyst</code>)</td>
+          <td>Windows exe built on Windows (VS or CLI, §2); <strong>Mac <code>.app</code> built on the Mac</strong> (one command, §3 — Catalyst cannot be built from Windows)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Two ways onto a Mac, and the difference matters:</p>
+
+    <ul>
+      <li><strong>The <em>native</em> Catalyst <code>.app</code> cannot be cross-published.</strong> A MAUI head compiles against Apple's native SDKs, which need <strong>Xcode, only on macOS</strong> (Visual Studio's "pair to Mac" is iOS-only). So the native desktop <code>.app</code> must be built <em>on the Mac</em> from source (§3 Option B) — you copy the <strong>source</strong>, not a binary.</li>
+      <li><strong>But you do NOT need a Mac (or Xcode, or .NET) to <em>run</em> TrSetup on a Mac.</strong> The retained <code>TrSetup.Web</code> Blazor head is plain .NET and <strong>self-contained-cross-publishes from Windows for <code>osx-arm64</code></strong>, so you can build the binary on Windows, copy the folder to the Mac, and run the full board in Safari/Chrome — the <strong>copy-to-Mac binaries</strong> path (§3 Option A, recommended). <code>TrSetup.Web</code> hosts the <em>same</em> <code>TrSetupUI</code> RCL over the <em>same</em> <code>TrSetup.Core</code> engine as the native head, so the Mac sees its own live detect evidence. (<code>TrSetup.Web</code> stays a non-shipping head under REQ-FN-034 — it is the test smoke host <em>and</em> this copy-to-Mac vehicle, not a second product GUI.)</li>
+    </ul>
+
+    <h2 id="build-the-windows-exe-visual-studio">2. Build the Windows exe (Visual Studio)<a class="anchor-link" href="#build-the-windows-exe-visual-studio">#</a></h2>
+
+    <p>Same as AppStudio: open <code>TrSetup.sln</code> → startup project <code>TrSetup</code> → Release, <code>net10.0-windows10.0.19041.0</code> → Build. Because <code>WindowsPackageType=None</code> (BRD-44, unpackaged), the build produces a plain double-clickable exe — no MSIX, no side-load cert. Distribute the whole self-contained folder:</p>
+
+<pre><code>src/TrSetup/bin/Release/net10.0-windows10.0.19041.0/win-x64/TrSetup.exe</code></pre>
+
+    <p>The <code>win-x64</code> RID sub-folder is added automatically by the MAUI Windows build (verified against the real solution — the executable is <code>TrSetup.exe</code>). Ship the entire <code>win-x64\</code> directory (it carries <code>TrSetup.exe</code>, <code>WebView2Loader.dll</code> / the WebView2 loader, <code>RestartAgent.exe</code>, the RCL/TrBlazeUI DLLs and the app runtime) — the lone <code>.exe</code> will not run on its own.</p>
+
+    <p>CLI equivalent (this is exactly rung #4 of the build ladder, driven from WSL as <code>cmd.exe /c "dotnet build src/TrSetup -f net10.0-windows10.0.19041.0 -c Release"</code>):</p>
+
+<pre><code class="language-powershell">dotnet build src/TrSetup -f net10.0-windows10.0.19041.0 -c Release</code></pre>
+
+    <p>On first launch the head opens a single native window titled <strong>TrSetup</strong> (<code>AutomationId="TrSetupMainPage"</code>) hosting the Blazor board in a <code>BlazorWebView</code> (<code>AutomationId="TrSetupBlazorWebView"</code>) — the two stable ids the Appium/WinAppDriver session attaches to.</p>
+
+    <blockquote>
+      <p><strong>Note — the "might not have installed correctly" popup is suppressed.</strong> Because the exe is named <code>TrSetup.exe</code> (contains "Setup"), Windows' Program Compatibility Assistant would otherwise false-flag it as an installer that didn't finish. The build embeds a Win32 manifest (<code>Platforms/Windows/app.manifest</code> → <code>&lt;compatibility&gt;</code> supportedOS Win7→11 + <code>asInvoker &lt;trustInfo&gt;</code>, wired via a windows-scoped <code>&lt;ApplicationManifest&gt;</code> in the csproj) that exempts the exe from that heuristic. TrSetup is not an installer. If an older build already showed the dialog once, click <strong>"This program installed correctly"</strong> to clear Windows' cached entry.</p>
+    </blockquote>
+
+    <h2 id="run-on-the-mac-two-paths">3. Run on the Mac — two paths<a class="anchor-link" href="#run-on-the-mac-two-paths">#</a></h2>
+
+    <h3 id="option-a-copy-to-mac-binaries-no-net-no-xcode-on-the-mac-recommended">Option A — copy-to-Mac binaries (no .NET / no Xcode on the Mac) — recommended<a class="anchor-link" href="#option-a-copy-to-mac-binaries-no-net-no-xcode-on-the-mac-recommended">#</a></h3>
+
+    <p>The <code>TrSetup.Web</code> head is plain .NET, so the "build on Windows → copy → run" flow works and gives you the complete board in Safari/Chrome on the Mac. <strong>Nothing but the copied folder is needed on the Mac.</strong></p>
+
+    <p><strong>On the Windows machine</strong> (self-contained publish — bundles the .NET runtime; the folder is ~120 MB and must be copied whole):</p>
+
+<pre><code class="language-bash">dotnet publish src/TrSetup.Web -c Release -r osx-arm64 --self-contained true -o publish/mac/TrSetup.Web</code></pre>
+
+    <p>(<code>-r osx-arm64</code> targets Apple Silicon; use <code>-r osx-x64</code> for an Intel Mac. From WSL this is ladder rung #4: <code>cmd.exe /c "dotnet publish src\TrSetup.Web -c Release -r osx-arm64 --self-contained true -o publish\mac\TrSetup.Web"</code>.)</p>
+
+    <p>Copy <code>publish/mac/TrSetup.Web/</code> to the Mac (Finder Cmd+K → <code>smb://&lt;windows-ip&gt;</code>, <code>scp -r</code>, AirDrop a zip, or USB).</p>
+
+    <p><strong>On the Mac:</strong></p>
+
+<pre><code class="language-bash">chmod +x TrSetup.Web/TrSetup.Web                    # SMB/zip copies strip the execute bit
+xattr -dr com.apple.quarantine TrSetup.Web          # clear Gatekeeper quarantine (unsigned build)
+./TrSetup.Web/TrSetup.Web                            # binds http://localhost:5999 and opens Safari</code></pre>
+
+    <p>The head binds <code>localhost:5999</code> and best-effort opens the Mac browser (<code>open</code>). Set <code>ASPNETCORE_URLS=http://localhost:5999</code> before launching to force the port; set <code>TRSETUP_NO_BROWSER=1</code> to stop it auto-opening. If Gatekeeper still complains, allow once via <strong>System Settings → Privacy &amp; Security</strong>. The board runs the same checks/fixes as the native head; only the auto-<strong>fixers</strong> that install Mac tooling still need §4's runtime prerequisites present.</p>
+
+    <h3 id="option-b-native-catalyst-app-built-on-the-mac">Option B — native Catalyst <code>.app</code> (built on the Mac)<a class="anchor-link" href="#option-b-native-catalyst-app-built-on-the-mac">#</a></h3>
+
+    <p>Prerequisites on the Mac (install manually — since the CLI bootstrapper head is withdrawn, TrSetup no longer installs its own build toolchain): Xcode (full, licence accepted), .NET 10 SDK, the MAUI workload (<code>dotnet workload install maui</code>), and git.</p>
+
+<pre><code class="language-bash">git clone &lt;TrSetup repo&gt; &amp;&amp; cd TrSetup
+dotnet build src/TrSetup -f net10.0-maccatalyst -c Release
+open "src/TrSetup/bin/Release/net10.0-maccatalyst/maccatalyst-arm64/TrSetup.app"</code></pre>
+
+    <ul>
+      <li>The <code>net10.0-maccatalyst</code> TFM is appended to <code>TrSetup.csproj</code> <strong>only on macOS</strong> (an <code>IsOSPlatform('OSX')</code> guard on <code>&lt;TargetFrameworks&gt;</code>), so this command is a no-op / unknown-TFM on Windows — Catalyst genuinely can only be built on the Mac (the §1 toolchain rule).</li>
+      <li>Output bundle: <strong><code>src/TrSetup/bin/Release/net10.0-maccatalyst/maccatalyst-arm64/TrSetup.app</code></strong> on Apple Silicon (an Intel Mac emits <code>maccatalyst-x64/</code> — the RID sub-folder follows the build host's architecture).</li>
+      <li><strong>Ad-hoc signed, no Apple certificate needed.</strong> The csproj sets <code>&lt;CodesignKey&gt;-&lt;/CodesignKey&gt;</code> + <code>&lt;CreatePackage&gt;false&lt;/CreatePackage&gt;</code> under a maccatalyst-guarded <code>PropertyGroup</code>, so the build produces a runnable <code>.app</code> (not a <code>.pkg</code>) signed with codesign's ad-hoc identity — a personal, unnotarised build. First launch may hit Gatekeeper ("cannot verify the developer"); clear it once with <code>xattr -dr com.apple.quarantine "…/TrSetup.app"</code> or allow it via System Settings → Privacy &amp; Security.</li>
+      <li>The window/board chrome carries the same AutomationIds as the Windows head (<code>TrSetupMainPage</code> page, <code>TrSetupBlazorWebView</code> web view) so the Appium <code>mac2</code> driver attaches by bundle id <code>com.techierathore.trsetup</code>.</li>
+    </ul>
+
+    <p>Once running, TrSetup does what it was built for: the board checks the machine, and every fix shows the exact command before running it and re-verifies after — Xcode CLT, SDKs, Appium, Postgres + PgVector, ffmpeg, isolated Python + ComfyUI, … per the selected machine role.</p>
+
+    <h2 id="troubleshooting-observed-expected">4. Troubleshooting (observed / expected)<a class="anchor-link" href="#troubleshooting-observed-expected">#</a></h2>
+
+    <ul>
+      <li><strong>Windows "This program might not have installed correctly" popup</strong> — suppressed by the embedded PCA-exemption manifest; see the note in §2. Only older builds (before the manifest) can show it; clear the cached entry with <strong>"This program installed correctly"</strong>.</li>
+      <li><strong>macOS "cannot verify the developer"</strong> — the Catalyst <code>.app</code> is an ad-hoc-signed personal build under Gatekeeper quarantine. Fix: <code>xattr -dr com.apple.quarantine "…/TrSetup.app"</code>, or allow once via System Settings → Privacy &amp; Security (see §3).</li>
+      <li><strong><code>NETSDK1139</code> / unknown TFM <code>net10.0-maccatalyst</code> when building on Windows</strong> — expected, not a bug: the Catalyst TFM only activates on macOS (the csproj guard in §3). Build the Catalyst head on the Mac.</li>
+    </ul>
+
+    <hr>
+    <p><em>Created 2026-07-05 alongside the plan (now <code>docs/OldDocs/TrSetup-Plan.md</code> §6.5); expanded 2026-07-06 with the Option A/B framing; firmed up 2026-07-07 at P4 (REQ-FN-031/REQ-NFR-006). Rewritten 2026-07-09 as MAUI-desktop-only after the owner decision to withdraw the Blazor Server and CLI heads (code removal tracked by REQ-FN-034): the Option A/B framing (§1b), the copy-to-Mac cross-publish path (old Option B), the WSL run section, and the <code>scripts/publish.*</code> / portability section (§5) were removed with the heads they described. 2026-07-10: head project renamed to <code>src/TrSetup</code> / <code>TrSetup.exe</code> (REQ-FN-035) — all paths updated. Last updated: 2026-07-10.</em></p>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

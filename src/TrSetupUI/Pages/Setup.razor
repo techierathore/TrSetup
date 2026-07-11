@@ -1,0 +1,146 @@
+@page "/setup"
+@inherits BoardComponentBase
+
+@* First-run role picker (REQ-UI-003): pick machine roles, the native-dev variant and a default
+   app, then save + scan. Shown automatically on first run; reachable later from the sidebar. *@
+<PageTitle>TrSetup — Setup</PageTitle>
+
+<header class="ts-topbar">
+    <SidebarTrigger />
+    <h1 class="ts-page-title">Setup</h1>
+</header>
+
+<main class="ts-content">
+    <div class="ts-setup-col">
+        <div>
+            <h2 class="ts-setup-h2">Which roles does this machine play?</h2>
+            <p class="ts-setup-lead">
+                Pick every role this machine plays in your verification setup — multiple are allowed
+                (a Mac is typically device host and app runner). The roles plus the selected app decide
+                which checks appear on your board. You can change this any time from Setup.
+            </p>
+        </div>
+
+        <div class="ts-role-grid">
+            @foreach (var vOption in RoleCatalog.Roles)
+            {
+                var vSelected = objRoles.HasFlag(vOption.Role);
+                <div class="ts-role-card @(vSelected ? "ts-checked" : "")"
+                     role="checkbox" aria-checked="@vSelected.ToString().ToLowerInvariant()" tabindex="0"
+                     @onclick="@(() => ToggleRole(vOption.Role))"
+                     @onkeydown="@(aArgs => OnRoleKey(aArgs, vOption.Role))"
+                     data-testid="@($"role-card-{vOption.Key}")">
+                    <span class="ts-role-cb"><Checkbox Checked="vSelected" /></span>
+                    <span class="ts-role-ic"><LucideIcon Name="@vOption.Icon" Size="18" /></span>
+                    <span class="ts-role-txt">
+                        <span class="ts-role-title">@vOption.Title</span>
+                        <div class="ts-role-desc">@vOption.Description</div>
+                    </span>
+                </div>
+            }
+        </div>
+
+        <div class="ts-switch-row" data-testid="NativeDevSwitch">
+            <Switch @bind-Checked="objIsNativeDev" Id="native-dev" />
+            <div>
+                <Label For="native-dev" Class="ts-switch-label">I develop natively on this machine</Label>
+                <div class="ts-switch-sub">Drops the WSL-bridge checks (mirrored networking, winrun) from the board.</div>
+            </div>
+        </div>
+
+        <div>
+            <label class="ts-field-label" for="app-select">Default app profile</label>
+            <div data-testid="SetupAppSelect">
+            <Select TValue="string" @bind-Value="objApp" DisplayTextSelector="AppLabel" Class="w-full">
+                <SelectTrigger>
+                    <SelectValue Placeholder="Framework only" />
+                </SelectTrigger>
+                <SelectContent>
+                    @foreach (var vApp in RoleCatalog.Apps)
+                    {
+                        <SelectItem Value="@vApp.Value" Text="@vApp.Label" TValue="string">@vApp.Label</SelectItem>
+                    }
+                </SelectContent>
+            </Select>
+            </div>
+        </div>
+
+        @if (objSaveError is { } vErr)
+        {
+            <div data-testid="SetupSaveError">
+                <Alert Variant="AlertVariant.Danger" AccentBorder="true">
+                    <AlertTitle>Could not save</AlertTitle>
+                    <AlertDescription>@vErr</AlertDescription>
+                </Alert>
+            </div>
+        }
+
+        <Button Class="ts-btn-block" OnClick="SaveAsync" Disabled="@(!HasBaseRole || objIsSaving)" data-testid="SetupSaveButton">
+            @if (objIsSaving)
+            {
+                <Spinner Size="SpinnerSize.Small" />
+            }
+            else
+            {
+                <LucideIcon Name="search" Size="16" />
+            }
+            <span>Save &amp; scan this machine</span>
+        </Button>
+        <div class="ts-hint">Saved to the local settings file — nothing leaves this machine.</div>
+    </div>
+</main>
+
+@code {
+    private MachineRole objRoles;
+    private bool objIsNativeDev;
+    private string? objApp;
+    private bool objIsSaving;
+    private string? objSaveError;
+
+    /// <inheritdoc />
+    protected override bool IsSetupPage => true;
+
+    private bool HasBaseRole => (objRoles & ~MachineRole.NativeDev) != MachineRole.None;
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        objRoles = Board.Roles & ~MachineRole.NativeDev;
+        objIsNativeDev = Board.Roles.HasFlag(MachineRole.NativeDev);
+        objApp = Board.SelectedApp ?? RoleCatalog.FrameworkOnlyValue;
+    }
+
+    private static string AppLabel(string aValue)
+        => RoleCatalog.Apps.Where(aApp => aApp.Value == aValue).Select(aApp => aApp.Label).FirstOrDefault() ?? aValue;
+
+    private void ToggleRole(MachineRole aRole) => objRoles ^= aRole;
+
+    private void OnRoleKey(KeyboardEventArgs aArgs, MachineRole aRole)
+    {
+        if (aArgs.Key is "Enter" or " ")
+        {
+            ToggleRole(aRole);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        objSaveError = null;
+        objIsSaving = true;
+        try
+        {
+            var vRoles = objRoles | (objIsNativeDev ? MachineRole.NativeDev : MachineRole.None);
+            var vApp = objApp == RoleCatalog.FrameworkOnlyValue ? null : objApp;
+            await Board.SaveSetupAsync(vRoles, vApp);
+            Nav.NavigateTo("/");
+        }
+        catch (Exception vEx)
+        {
+            objSaveError = vEx.Message;
+        }
+        finally
+        {
+            objIsSaving = false;
+        }
+    }
+}

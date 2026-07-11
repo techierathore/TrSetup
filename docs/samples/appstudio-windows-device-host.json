@@ -1,0 +1,7 @@
+{
+  "Roles": "DeviceHostWindows",
+  "SelectedApp": "AppStudio",
+  "Endpoints": {
+    "MacIp": "192.168.1.50"
+  }
+}

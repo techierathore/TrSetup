@@ -1,0 +1,72 @@
+{
+  "name": "AppStudio",
+  "requirements": [
+    {
+      "type": "sdk",
+      "id": "appstudio.dotnet-sdk",
+      "title": ".NET 10 SDK",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "version": "10" }
+    },
+    {
+      "type": "workload",
+      "id": "appstudio.maui-workload",
+      "title": "MAUI workload",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "workload": "maui" }
+    },
+    {
+      "type": "cli-tool",
+      "id": "appstudio.dotnet-cli",
+      "title": "dotnet on PATH",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "command": "dotnet" }
+    },
+    {
+      "type": "cli-tool",
+      "id": "appstudio.git-cli",
+      "title": "git on PATH",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "command": "git" }
+    },
+    {
+      "type": "cli-tool",
+      "id": "appstudio.xcode",
+      "title": "Xcode (Catalyst build prerequisite)",
+      "roles": ["AppRunnerMac"],
+      "severity": "Required",
+      "params": { "command": "xcodebuild" }
+    },
+    {
+      "type": "nuget-feed",
+      "id": "appstudio.github-packages-feed",
+      "title": "techierathore GitHub Packages feed usable",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": {
+        "url": "https://nuget.pkg.github.com/techierathore/index.json",
+        "patEnvVar": "GITHUB_PACKAGES_PAT"
+      }
+    },
+    {
+      "type": "endpoint",
+      "id": "appstudio.appmanager-api",
+      "title": "App Manager API reachable",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "url": "https://localhost:5101/" }
+    },
+    {
+      "type": "env-secret",
+      "id": "appstudio.appmanager-secret",
+      "title": "AppManager applicationId/API key configured",
+      "roles": ["DeviceHostWindows", "AppRunnerMac"],
+      "severity": "Required",
+      "params": { "envVar": "APPMANAGER_API_KEY" }
+    }
+  ]
+}

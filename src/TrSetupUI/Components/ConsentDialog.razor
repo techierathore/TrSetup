@@ -1,0 +1,44 @@
+@* Consent gate for single-row fixes (REQ-FN-002): shows the check's FixPreview verbatim with
+   Approve / Decline. Suppressed during a fix-all run — that screen renders consent inline. *@
+@implements IDisposable
+@inject BoardState Board
+
+@if (PendingCheck is { } vCheck && !Board.IsFixAllRunning)
+{
+    <div class="ts-modal-overlay" data-testid="ConsentDialog" role="presentation">
+        <div class="ts-modal-card" role="dialog" aria-modal="true" aria-label="Confirm fix">
+            <div class="ts-modal-title">
+                <LucideIcon Name="shield" Size="18" />
+                This step needs your approval
+            </div>
+            <p class="ts-modal-sub">@vCheck.Title — the exact command below runs only after you approve. Nothing else is executed.</p>
+            <pre class="ts-consent-pre" data-testid="ConsentPreview">@(vCheck.FixPreview ?? "(no preview)")</pre>
+            <div class="ts-modal-actions">
+                <Button Variant="ButtonVariant.Outline" OnClick="Decline" data-testid="ConsentDeclineButton">Decline</Button>
+                <Button OnClick="Approve" data-testid="ConsentApproveButton">
+                    <LucideIcon Name="play" Size="16" />
+                    Approve &amp; run
+                </Button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private Check? PendingCheck => Board.Consent.PendingCheck;
+
+    protected override void OnInitialized() => Board.Consent.Changed += OnConsentChanged;
+
+    private void Approve() => Board.Consent.Approve();
+
+    private void Decline() => Board.Consent.Decline();
+
+    private void OnConsentChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Releases the consent-change subscription.</summary>
+    public void Dispose()
+    {
+        Board.Consent.Changed -= OnConsentChanged;
+        GC.SuppressFinalize(this);
+    }
+}
