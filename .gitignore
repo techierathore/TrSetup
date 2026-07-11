@@ -1,0 +1,28 @@
+
+# TechieFlow framework — deployed copies, never commit (managed by scaffold/update-framework.sh)
+.tfcore/
+.claude/
+.opencode/
+/CLAUDE.md
+/WORKFLOW.html
+/opencode.jsonc
+/.tf-scaffold-note.txt
+
+# Distribution output — self-contained publishes (scripts/publish.*), never commit
+/publish/
+
+# Verifier artifacts (verify-phase): headless-Playwright deps, screenshots, boot logs
+/node_modules/
+/test-results/
+/.verify/
+*.log
+/tests
+/.vs
+/package.json
+/package-lock.json
+/nuget.config
+/playwright.config.ts
+/TrSetupReport-20260706-140549.md
+/docs/screenshots/TrSetup
+/docs/.last-verify.json
+/.editorconfig
