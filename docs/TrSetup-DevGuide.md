@@ -1,6 +1,6 @@
 # TrSetup — Developer Guide (screen → service → engine)
 
-**Runtime-verified 2026-07-10 (executed verify-phase: all 6 UI screens render+visual via the :5999 smoke host, 7/7 specs; board + settings desktop screenshots inspected) · Last updated 2026-07-10 (head project renamed `src/TrSetup.App` → `src/TrSetup`, REQ-FN-035 — paths updated throughout).**
+**Runtime-verified 2026-07-11 on macOS "TechieMacPro" (executed verify-phase ×2 same day as roles DeviceHostMac+AppRunnerMac, AppStudio: the morning `phase-mac` run found the stuck-Pending streaming defect; the evening fix-issues re-verify run confirmed it FIXED — Board + Check-detail exercised live on :5999, 8/8 specs incl. a new full-settlement test that treats "Pending" as unsettled; desktop/mobile/sheet screenshots inspected; resolved Known issue #1) · previously 2026-07-10 (all 6 screens, WSL) · Last updated 2026-07-11.**
 
 > **Purpose.** The bug-chasing map for TrSetup: for any screen it names the control, its `data-testid`, the data it renders, and the exact call chain down through the RCL board state into the `TrSetup.Core` engine and the process runner — so a human can confirm the AI-generated code does what the board shows.
 
@@ -71,7 +71,7 @@ flowchart TB
 
 ## The one data chain every screen shares
 
-Every screen inherits `BoardComponentBase`, which injects the per-circuit `BoardState`, subscribes to its `Changed` event to re-render, and redirects to `/setup` when `BoardState.NeedsSetup` (no roles configured yet).
+Every screen inherits `BoardComponentBase`, which injects the per-circuit `BoardState`, subscribes to its `Changed` event to re-render, and redirects to `/setup` when `BoardState.NeedsSetup` (no roles configured yet). Since 2026-07-11 the shared `BoardView` child component inherits it too — it is a parameterless child, and Blazor skips re-rendering a retained parameterless child when only its parent re-renders, so without its own `Changed` subscription late detect results were never painted (the resolved stuck-Pending defect, ex-Known issue #1).
 
 ```mermaid
 sequenceDiagram
@@ -126,7 +126,7 @@ Key methods to breakpoint when a row shows the wrong thing:
 | Group count badges | `count-pass-{slug}` (+ warn/fail inline) | `vGroup.PassCount / WarnCount / FailCount` | computed on `BoardGroup` from row statuses | renders ✓ runtime-confirmed 2026-07-07 |
 | Per-group Fix all | `fix-all-{slug}` | Shown when `FixableRows(group).Count > 0` | `BoardView.FixAllGroup` → `BoardState.QueueFixAll(group)` → nav `/fix-run` | renders ✓ runtime-confirmed 2026-07-07 |
 | Check row | `board-row-{id}` | `BoardRow`: title, status, evidence | `OrderRows` (Fail→Warn→null→Pass) over `Board.Groups` | renders ✓ runtime-confirmed 2026-07-07 |
-| Status icon+text | `status-{id}` | `StatusLabel` — never colour alone (REQ-NFR-003) | `BoardRow.Status` ← `CheckResult.Status` from `DetectAsync` | renders ✓ runtime-confirmed 2026-07-07 |
+| Status icon+text | `status-{id}` | `StatusLabel` — never colour alone (REQ-NFR-003) | `BoardRow.Status` ← `CheckResult.Status` from `DetectAsync` | renders ✓ runtime-confirmed 2026-07-11 (streaming fix verified: every row settles to a real verdict, none left "Pending" — 8/8 specs incl. the new full-settlement test; ex-Known issue #1) |
 | Row title (opens detail) | `row-title-{id}` | Opens `/check/{id}` | `OpenDetail` → `Nav.NavigateTo($"/check/{id}")` | renders ✓ runtime-confirmed 2026-07-07 |
 | Preview | `preview-{id}` | Opens the detail sheet | `OpenDetail` | renders ✓ runtime-confirmed 2026-07-07 |
 | Fix | `fix-{id}` | Only for non-manual checks; disabled while a fix runs | `FixRowAsync` → `BoardState.FixRowAsync` → `FixPipeline.RunAsync(check)` (consent) → `Check.FixAsync` → `VerifyAsync` | renders ✓ runtime-confirmed 2026-07-07 |
@@ -156,13 +156,13 @@ So when AppStudio/TrStudio is selected, its profile rows fold into **Framework c
 
 ![Board dashboard — mobile 390px](screenshots/TrSetup/board-mobile.png)
 
-⚠ **visual: status-table overflows at 390px, desktop clean.** All data renders and the per-row Fix / re-check buttons are reachable via horizontal scroll, but they sit past the 390px viewport. TrSetup is a desktop/WSL/Mac dev tool, so desktop is the real target; mobile responsive polish is a future item, not a TrBlazeUI defect (checklist REQ-UI-001).
+looks-right ✓ runtime-confirmed 2026-07-11 (Mac run): at 390px the rows now stack cleanly — no horizontal overflow (`scrollWidth == innerWidth`), Fix / re-check buttons in-viewport; screenshot inspected. The 2026-07-07 overflow caveat did not reproduce (Known issue #2).
 
 ## Screen: Check detail sheet
 
 **Route:** `/check/{id}` — `src/TrSetupUI/Pages/CheckDetail.razor`. Renders the board underneath a right-side sheet; **deep-linkable** (any `board-row-{id}` id lands directly). REQ-UI-002.
 
-*Screenshot pending (not re-captured this pass — the desktop verify screenshot lives only in the transient `test-results/` run; render + visual gate passed 2026-07-07 per checklist REQ-UI-002, deep link `/check/wsl.winrun`).*
+*Render + visual gate re-passed 2026-07-11 on the Mac (deep link `/check/appstudio.maccatalyst-build` — title, Explain, evidence pane, FixPreview with the literal command, Fix/Re-check/Close all render; screenshot `test-results/phase-mac-sheet-desktop.png`, transient). The evidence pane legitimately shows "not yet detected / never detected" until the row's first detect lands, then streams the live result in — re-verified same day after the streaming + gate-budget fixes: the Catalyst row's pane now settles to real gate evidence ("Prerequisites still red — fix them first: …") within the sweep budget (ex-Known issue #1).*
 
 ### Controls
 
@@ -305,7 +305,7 @@ TrSetup ships as **one head**: `TrSetup`, a MAUI Blazor Hybrid desktop app.
 
 The `TrSetup.Cli` (Spectre.Console TUI + `--check --json` agent mode) head, its tests, and the `scripts/publish.*` / `scripts/preflight-gate.*` scripts have been **deleted** and pruned from `TrSetup.sln`; the product ships as the single MAUI app `TrSetup`. Its historical detail (TUI key map, agent-mode wire schema + exit codes) is archived in `docs/OldDocs/TrSetup-AgentMode.md`.
 
-`TrSetup.Web` (Blazor Server / Kestrel :5999) is **retained but reclassified** from a shipping head to the **test-only headless UI smoke host** (owner decision): `playwright.config.ts` boots it on :5999 for the verify suite, it hosts the same `TrSetupUI` RCL so the render + visual gates exercise the real screens, and it now respects `TRSETUP_NO_BROWSER=1` so it does not auto-open a browser under the harness. It is not shipped to users.
+`TrSetup.Web` (Blazor Server / Kestrel :5999) is **retained but reclassified** from a shipping head to the **test-only headless UI smoke host** (owner decision): `playwright.config.ts` boots it on :5999 for the verify suite, it hosts the same `TrSetupUI` RCL so the render + visual gates exercise the real screens, and it now respects `TRSETUP_NO_BROWSER=1` so it does not auto-open a browser under the harness. It is not shipped to users. Its content root is **pinned to the binary's own folder** (`ContentRootPath = AppContext.BaseDirectory`, `Program.cs` — fixed 2026-07-11 after an owner-reported unstyled board on the Mac): before the pin, launching a publish from any other working directory resolved `wwwroot/` against the launch cwd and every static asset 404'd (raw unstyled HTML).
 
 ## Where things live
 
@@ -345,17 +345,21 @@ The `TrSetup.Cli` (Spectre.Console TUI + `--check --json` agent mode) head, its 
 
 ## Known issues and gotchas
 
-1. **Board mobile overflow (⚠ visual).** At 390px the status table overflows horizontally; per-row Fix / re-check buttons sit past the viewport (reachable via horizontal scroll — all data renders). Desktop is clean and is the real target for a dev tool. Future responsive polish, not a library defect. (Checklist REQ-UI-001.)
+1. **Stuck-Pending board rows — RESOLVED 2026-07-11 (same day it was found; fix verified by the evening re-verify run).** Root causes were three, all fixed: (a) `BoardView.razor` is a **parameterless child** of the pages that subscribe to `BoardState.Changed`, and Blazor skips re-rendering a retained parameterless child on a parent re-render — late detect results updated the model but were never painted; `BoardView` now `@inherits BoardComponentBase` (own subscription). (b) `CheckEngine.ProbeWithTimeoutAsync` relied on **cooperative** cancellation, so a token-ignoring probe kept its row un-settled forever; the probe await is now hard-bounded with `.WaitAsync` — the 5 s budget always settles the row (worst case `Fail("Probe timed out…")`). (c) `CheckCatalog.DetectRedIdsAsync` ran the Catalyst gate's 8 prereq detects sequentially and unbounded; they now run in parallel, each bounded by `PrerequisiteProbeTimeout` (3.5 s), with un-confirmable prereqs honestly reported red (`<id> (not confirmed green: …)`). Verified: 8/8 specs — the suite now treats "Pending" as unsettled, plus a dedicated REQ-UI-001 full-settlement test over 2 fresh loads; unit tests 10/10. (Checklist REQ-UI-001 / REQ-FN-028.)
 
-2. **8 host/destructive UAT items pending.** The live fix runs (`REQ-FN-014` WSL, `REQ-FN-015` Windows, `REQ-FN-016` Mac auto-installers; `REQ-FN-025` ComfyUI download, `REQ-FN-026` Postgres/ffmpeg install), the `REQ-FN-008` Mac detects live run, the `REQ-FN-028` Mac Catalyst build, and the `REQ-FN-030` MAUI GUI **visual** boot are marked *Implemented* (75–90%) rather than *Verified*: they can only be exercised on the owning box (a real Windows/Mac desktop, or a destructive install on a clean machine). The detect logic and fixer plumbing are unit-tested and the previews render live; only the irreversible/host-bound clauses remain. (Checklist "Status values" legend + those REQ rows.)
+2. **Board mobile overflow — NOT REPRODUCED 2026-07-11 (Mac run).** At 390px the rows now stack cleanly with no horizontal overflow (`scrollWidth == innerWidth`, screenshot inspected — looks-right ✓ runtime-confirmed 2026-07-11). The 2026-07-07 overflow caveat appears resolved by the current layout; keep an eye on it at re-verify. (Checklist REQ-UI-001.)
 
-3. **PCA manifest fix for the Windows exe.** The unpackaged exe is named `TrSetup.exe`; because the name contains "Setup", Windows' Program Compatibility Assistant installer-detection heuristic false-fired the "This program might not have installed correctly" popup. Fixed by embedding a proper Win32 manifest — `Platforms/Windows/app.manifest` carries `<compatibility>` supportedOS (Win7→11) + `asInvoker <trustInfo>`, now referenced via a windows-scoped `<ApplicationManifest>` in the csproj (it was previously unreferenced, so not embedded). Rung-#4 rebuild verified all four manifest markers embedded. (Checklist REQ-FN-030.)
+3. **8 host/destructive UAT items pending.** The live fix runs (`REQ-FN-014` WSL, `REQ-FN-015` Windows, `REQ-FN-016` Mac auto-installers; `REQ-FN-025` ComfyUI download, `REQ-FN-026` Postgres/ffmpeg install), the `REQ-FN-008` Mac detects live run, the `REQ-FN-028` Mac Catalyst build, and the `REQ-FN-030` MAUI GUI **visual** boot are marked *Implemented* (75–90%) rather than *Verified*: they can only be exercised on the owning box (a real Windows/Mac desktop, or a destructive install on a clean machine). The detect logic and fixer plumbing are unit-tested and the previews render live; only the irreversible/host-bound clauses remain. (Checklist "Status values" legend + those REQ rows.)
 
-4. **Profile rows do not get their own board heading.** Typed profile requirements render under **Framework core** (`ProfileCheck.Category => FrameworkCore`), not under an "&lt;App&gt; profile" group; only heavy types split into Services / Runtimes / Capacity. If you expect a per-app group and don't find one, that is why — see [Board groups as built](#screen-board-dashboard).
+4. **PCA manifest fix for the Windows exe.** The unpackaged exe is named `TrSetup.exe`; because the name contains "Setup", Windows' Program Compatibility Assistant installer-detection heuristic false-fired the "This program might not have installed correctly" popup. Fixed by embedding a proper Win32 manifest — `Platforms/Windows/app.manifest` carries `<compatibility>` supportedOS (Win7→11) + `asInvoker <trustInfo>`, now referenced via a windows-scoped `<ApplicationManifest>` in the csproj (it was previously unreferenced, so not embedded). Rung-#4 rebuild verified all four manifest markers embedded. (Checklist REQ-FN-030.)
 
-5. **`TrSetup.Web` is a test fixture, not a head (REQ-FN-034 done).** The Spectre CLI head, its tests, and the publish / pre-flight scripts are **deleted** and pruned from the solution; the product ships only as `TrSetup`. `TrSetup.Web` survives solely as the test-only headless smoke host the Playwright verify suite boots on :5999 (it respects `TRSETUP_NO_BROWSER=1`) — do not treat it as a shipping head, extend it as one, or document against it. The removed CLI agent-mode contract is archived in `docs/OldDocs/TrSetup-AgentMode.md`.
+5. **Profile rows do not get their own board heading.** Typed profile requirements render under **Framework core** (`ProfileCheck.Category => FrameworkCore`), not under an "&lt;App&gt; profile" group; only heavy types split into Services / Runtimes / Capacity. If you expect a per-app group and don't find one, that is why — see [Board groups as built](#screen-board-dashboard).
 
-6. **Git is manual.** Per CLAUDE.md, no agent runs `git`/`gh`. Evidence for "what changed" is the working-tree files + a fresh `dotnet build` + the checklist table — not `git log`. The owner commits.
+6. **`TrSetup.Web` is a test fixture, not a head (REQ-FN-034 done).** The Spectre CLI head, its tests, and the publish / pre-flight scripts are **deleted** and pruned from the solution; the product ships only as `TrSetup`. `TrSetup.Web` survives solely as the test-only headless smoke host the Playwright verify suite boots on :5999 (it respects `TRSETUP_NO_BROWSER=1`) — do not treat it as a shipping head, extend it as one, or document against it. The removed CLI agent-mode contract is archived in `docs/OldDocs/TrSetup-AgentMode.md`.
+
+7. **Git is manual.** Per CLAUDE.md, no agent runs `git`/`gh`. Evidence for "what changed" is the working-tree files + a fresh `dotnet build` + the checklist table — not `git log`. The owner commits.
+
+8. **Historical unit-test suite missing on the Mac working tree (found 2026-07-11).** `tests/unit/TrSetup.Core.Tests/` was referenced by the sln but absent from this Mac's disk (cross-machine copy casualty). It was re-scaffolded on 2026-07-11 with the 10 new engine/gate tests (`CheckEngineProbeTimeoutTests`, `CheckCatalogGateDetectTests`, `TestDoubles/StubCheck`); the historical ~126 tests were never committed (`/tests` is gitignored, line 19) — they live only on the WSL machine's disk. **Owner action: copy `tests/unit/TrSetup.Core.Tests` over from the WSL clone and merge with the new test files (or un-ignore `/tests` so the suite travels with the repo).** (Checklist REQ-UI-001 remark.)
 
 ---
 

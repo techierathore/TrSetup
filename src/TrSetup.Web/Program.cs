@@ -18,11 +18,29 @@ using TrSetupUI.Services;
 
 const int PreferredPort = 5999;
 
-var vBuilder = WebApplication.CreateBuilder(args);
+// Pin the content root to the binary's own folder: CreateBuilder(args) defaults it to the
+// LAUNCH cwd, so a published TrSetup.Web started from any other directory resolved wwwroot/
+// against the wrong folder and served raw unstyled HTML (every static asset 404). BaseDirectory
+// is correct for both `dotnet run` (manifest-served assets) and publishes (physical wwwroot/).
+var vBuilder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,
+});
 
 // Serve framework/RCL static web assets (blazor.web.js, _content/*) when running from build
 // output in any environment — without this a plain `dotnet run` (Production) 404s them.
-StaticWebAssetsLoader.UseStaticWebAssets(vBuilder.Environment, vBuilder.Configuration);
+// The build-output manifest records absolute paths from the BUILD machine; when the bin
+// folder is copied to another machine those roots don't exist and the loader throws —
+// published output (which carries wwwroot/ physically) must still boot, so don't crash.
+try
+{
+    StaticWebAssetsLoader.UseStaticWebAssets(vBuilder.Environment, vBuilder.Configuration);
+}
+catch (DirectoryNotFoundException)
+{
+    Console.WriteLine("Static web asset manifest points at missing build-machine paths — serving wwwroot/ only. Use a published output (dotnet publish) when copying to another machine.");
+}
 
 vBuilder.Services.AddRazorComponents().AddInteractiveServerComponents();
 vBuilder.Services.AddSingleton<IProcessRunner, ProcessRunner>();

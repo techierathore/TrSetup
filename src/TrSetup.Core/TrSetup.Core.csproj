@@ -13,6 +13,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.*" />
   </ItemGroup>
 
+  <!-- Unit tests exercise internal seams (e.g. the REQ-FN-028 prerequisite-gate detect). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="TrSetup.Core.Tests" />
+  </ItemGroup>
+
   <!-- Built-in declarative profiles (REQ-FN-021): every JSON dropped under Profiles/BuiltIn/ is
        embedded and auto-discovered by BuiltInProfiles.CreateDefault (Cluster B onboards apps here). -->
   <ItemGroup>

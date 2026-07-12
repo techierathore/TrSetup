@@ -113,7 +113,14 @@ cd /mnt/c/3AIGenCode/TrSetup
 cmd.exe /c "dotnet publish src\TrSetup.Web -c Release -r osx-arm64 --self-contained true -o publish\mac\TrSetup.Web"
 ```
 
-**Step 2 — copy the whole `publish/mac/TrSetup.Web/` folder to the Mac** (Finder → Cmd+K → `smb://<windows-ip>`, or `scp -r`, or zip+AirDrop, or USB).
+**Step 2 — copy the whole `publish/mac/TrSetup.Web/` folder to the Mac** (Finder → Cmd+K → `smb://<windows-ip>`, or `scp -r`, or zip+AirDrop, or USB). **Avoid drag-and-drop through a Remote Desktop window** — RDP file transfer can silently create 0-byte placeholder files (seen 2026-07-11: two "copies" landed hollow in the RDP temp container and nothing runnable ever reached the Mac).
+
+**Step 2a — verify the copy before running it** (copy-paste on the Mac; adjust the path):
+
+```bash
+du -sh TrSetup.Web                     # must be ~120 MB, not 0B
+find TrSetup.Web -type f -size 0 | wc -l   # must print 0
+```
 
 **Step 3 — on the Mac, in Terminal** (copy-paste; the first line assumes you copied the folder to `~/Downloads` — adjust if elsewhere):
 
@@ -129,6 +136,14 @@ xattr -dr com.apple.quarantine TrSetup.Web       # clear Gatekeeper quarantine (
 **Step 5 — first run:** complete the role picker — tick **Device host (Mac)** and **App runner (Mac)**, pick **AppStudio**, **Save & scan**. (Or pre-seed the settings file before Step 3: `cp docs/samples/appstudio-mac-runner.json ~/.trsetup/settings.json` — see [§5.3](#53-seed-settings-by-copying-a-sample-file).)
 
 You now have the full board with **live Mac detect evidence** — the `mac.*` rows (Xcode/CLT, .NET+MAUI, Node, Appium xcuitest/mac2, LaunchAgent :4723, stable IP, iOS Simulator) show real Pass/Fail/Warn for *this* Mac.
+
+> **Option A′ — publish directly on the Mac (no Windows machine needed):** if the Mac has the repo and the .NET 10 SDK, and the private TrBlazeUI packages are restorable there (this Mac has them in the local feed `~/LocalNuGet`, registered 2026-07-11 — reconstructed 1.0.7 nupkgs with the real assemblies + static assets), you can skip the copy entirely:
+>
+> ```bash
+> cd <repo-root>
+> dotnet publish src/TrSetup.Web -c Release -r osx-arm64 --self-contained true -o publish/mac/TrSetup.Web
+> ./publish/mac/TrSetup.Web/TrSetup.Web        # board on http://localhost:5999
+> ```
 
 ### Option B — native Catalyst `.app` (build on the Mac)
 
@@ -291,6 +306,8 @@ Common issues:
 | `NETSDK1139` / unknown TFM `net10.0-maccatalyst` | Windows | Expected — the Catalyst head only builds on macOS ([§3 Option B](#option-b--native-catalyst-app-build-on-the-mac)) |
 | Port busy / wrong port (browser board) | Mac/WSL | `ASPNETCORE_URLS=http://localhost:5999` before launching; `TRSETUP_NO_BROWSER=1` stops the auto-open |
 | A lowercase `trsetup` folder appears under `publish/<rid>/` | any | **Do not run it** — that is the publish output of the deleted Spectre CLI head (removed 2026-07-09, REQ-FN-034; stale copies were purged 2026-07-10). If one reappears it is a stale artifact — delete it. The only supported ways to run TrSetup are §2–§4 |
+| Board is raw unstyled HTML, or startup crashes with `DirectoryNotFoundException: /home/…` or `/mnt/c/…` | Mac (browser board) | Two known causes, both fixed for builds published after 2026-07-11: (1) **launching the publish from a different working directory** — the host used to resolve `wwwroot/` from the launch cwd, so every CSS/JS 404'd; the content root is now pinned to the binary's folder, so launch it from anywhere. (2) You ran a **`bin/Debug` build-output folder copied from another machine** — its static-asset manifest points at the *build* machine's paths (pre-2026-07-11 builds crashed outright; the startup guard boots but serves wwwroot only). Never copy `bin/`; copy a **published** output (§3 Option A Step 1) or publish on the Mac (Option A′). If you still see raw HTML, re-publish — you are running a pre-fix binary |
+| Copied folder won't run; files are 0 bytes | Mac | The folder was dragged through a Remote Desktop window — RDP transfer can create hollow placeholder files. Re-copy via SMB/`scp`/zip and run the §3 Step 2a check |
 | Board rows show `○ N/A` | any | Not an error — only your selected roles' + app's checks run; widen the roles in Settings |
 | Board cramped below ~390 px width | any | Known minor item — the status table needs horizontal scroll; desktop is the target |
 

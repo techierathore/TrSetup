@@ -471,23 +471,20 @@
           "Blazor-ApexCharts": "6.1.0",
           "HtmlSanitizer": "9.0.892",
           "Markdig": "0.45.0",
-          "Microsoft.AspNetCore.Components.Web": "10.0.3",
           "TrBlazeUI.Icons.Lucide": "1.0.7",
           "TrBlazeUI.Primitives": "1.0.7"
         },
         "compile": {
-          "lib/net10.0/TrBlazeUI.Components.dll": {
-            "related": ".xml"
-          }
+          "lib/net10.0/TrBlazeUI.Components.dll": {}
         },
         "runtime": {
-          "lib/net10.0/TrBlazeUI.Components.dll": {
-            "related": ".xml"
-          }
+          "lib/net10.0/TrBlazeUI.Components.dll": {}
         },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ],
         "build": {
-          "buildTransitive/TrBlazeUI.Components.props": {},
-          "buildTransitive/TrBlazeUI.Components.targets": {}
+          "buildTransitive/TrBlazeUI.Components.props": {}
         },
         "buildMultiTargeting": {
           "buildMultiTargeting/TrBlazeUI.Components.props": {}
@@ -495,42 +492,27 @@
       },
       "TrBlazeUI.Icons.Lucide/1.0.7": {
         "type": "package",
-        "dependencies": {
-          "Microsoft.AspNetCore.Components.Web": "10.0.3"
-        },
         "compile": {
-          "lib/net10.0/TrBlazeUI.Icons.Lucide.dll": {
-            "related": ".xml"
-          }
+          "lib/net10.0/TrBlazeUI.Icons.Lucide.dll": {}
         },
         "runtime": {
-          "lib/net10.0/TrBlazeUI.Icons.Lucide.dll": {
-            "related": ".xml"
-          }
+          "lib/net10.0/TrBlazeUI.Icons.Lucide.dll": {}
         },
-        "contentFiles": {
-          "contentFiles/any/net10.0/lucide.json": {
-            "buildAction": "Content",
-            "codeLanguage": "any",
-            "copyToOutput": false
-          }
-        }
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
       },
       "TrBlazeUI.Primitives/1.0.7": {
         "type": "package",
-        "dependencies": {
-          "Microsoft.AspNetCore.Components.Web": "10.0.3"
-        },
         "compile": {
-          "lib/net10.0/TrBlazeUI.Primitives.dll": {
-            "related": ".xml"
-          }
+          "lib/net10.0/TrBlazeUI.Primitives.dll": {}
         },
         "runtime": {
-          "lib/net10.0/TrBlazeUI.Primitives.dll": {
-            "related": ".xml"
-          }
+          "lib/net10.0/TrBlazeUI.Primitives.dll": {}
         },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ],
         "build": {
           "buildTransitive/TrBlazeUI.Primitives.props": {}
         },
@@ -1294,23 +1276,17 @@
       ]
     },
     "TrBlazeUI.Components/1.0.7": {
-      "sha512": "xregZLrPm6WFRN53H8OvPybaoRrgcRchvPgl6pz26mnu8HQl8l8WTuRfXUiJMNgWr4akFWOKl8ptjbHTcMpkrQ==",
+      "sha512": "WLMjZpvFtrbIAoigT269sONCWUvBrEouNYK1TUPs2jlrg9PKuwTPED8mB0oa1L6mo6ajSV3k20NjIA7Gbani8w==",
       "type": "package",
       "path": "trblazeui.components/1.0.7",
       "files": [
         ".nupkg.metadata",
-        "README.md",
         "build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
         "build/Microsoft.AspNetCore.StaticWebAssets.props",
         "build/TrBlazeUI.Components.props",
         "buildMultiTargeting/TrBlazeUI.Components.props",
         "buildTransitive/TrBlazeUI.Components.props",
-        "buildTransitive/TrBlazeUI.Components.targets",
-        "docs/TrBlazeUI-AI-Reference.md",
         "lib/net10.0/TrBlazeUI.Components.dll",
-        "lib/net10.0/TrBlazeUI.Components.xml",
-        "skills/claude-code-trblazeui.md",
-        "skills/opencode-trblazeui.md",
         "staticwebassets/css/trblazeui-input.css",
         "staticwebassets/js/file-upload.js",
         "staticwebassets/js/markdown-editor.js",
@@ -1330,34 +1306,28 @@
       ]
     },
     "TrBlazeUI.Icons.Lucide/1.0.7": {
-      "sha512": "pV3PNuhxVCzWqx0IRqbtVtH4PC0NCfrOKn07SNIXsowKJcxax+1erAmit40qdjs7tCCxNVIyOja5rAWxkaKnxw==",
+      "sha512": "69rcmiAmp9zb74r0KzTvEksj/oNPzm4ZRh7LmKvMBbomgKcRAeTz5aLbhNam/sjGTKreXA3lb5MKlsk+/coLfA==",
       "type": "package",
       "path": "trblazeui.icons.lucide/1.0.7",
       "files": [
         ".nupkg.metadata",
-        "README.md",
-        "content/lucide.json",
-        "contentFiles/any/net10.0/lucide.json",
         "lib/net10.0/TrBlazeUI.Icons.Lucide.dll",
-        "lib/net10.0/TrBlazeUI.Icons.Lucide.xml",
         "trblazeui.icons.lucide.1.0.7.nupkg.sha512",
         "trblazeui.icons.lucide.nuspec"
       ]
     },
     "TrBlazeUI.Primitives/1.0.7": {
-      "sha512": "aDx9RTxoMmDRQdfNKBYs4tqbjCc3UhJHlVkkcKnpMvLbuZ3R6ExfTjTaASdLDlE4s4jmKfFCl0MANCFyuJGZww==",
+      "sha512": "IdGDlKtFRoKV06bAvAIVv5fcbiuPR9t7ycGZeMAxOCILx7AXp2JYiTQ9kP3GzzAg3xHefV50tm2Zp4djhRw2fQ==",
       "type": "package",
       "path": "trblazeui.primitives/1.0.7",
       "files": [
         ".nupkg.metadata",
-        "README.md",
         "build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
         "build/Microsoft.AspNetCore.StaticWebAssets.props",
         "build/TrBlazeUI.Primitives.props",
         "buildMultiTargeting/TrBlazeUI.Primitives.props",
         "buildTransitive/TrBlazeUI.Primitives.props",
         "lib/net10.0/TrBlazeUI.Primitives.dll",
-        "lib/net10.0/TrBlazeUI.Primitives.xml",
         "staticwebassets/Components/DropdownMenu/dropdown-menu.js",
         "staticwebassets/Components/Select/select.js",
         "staticwebassets/js/primitives/click-outside.js",
@@ -1389,42 +1359,35 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\srkra\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "/Users/techierathore/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\3AIGenCode\\TrSetup\\src\\TrSetupUI\\TrSetupUI.csproj",
+      "projectUniqueName": "/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/TrSetupUI.csproj",
       "projectName": "TrSetupUI",
-      "projectPath": "C:\\3AIGenCode\\TrSetup\\src\\TrSetupUI\\TrSetupUI.csproj",
-      "packagesPath": "C:\\Users\\srkra\\.nuget\\packages\\",
-      "outputPath": "C:\\3AIGenCode\\TrSetup\\src\\TrSetupUI\\obj\\",
+      "projectPath": "/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/TrSetupUI.csproj",
+      "packagesPath": "/Users/techierathore/.nuget/packages/",
+      "outputPath": "/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/obj/",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\3AIGenCode\\TrSetup\\NuGet.Config",
-        "C:\\Users\\srkra\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/Users/techierathore/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
-        "C:\\Program Files\\dotnet\\library-packs": {},
-        "https://api.nuget.org/v3/index.json": {},
-        "https://nuget.pkg.github.com/techierathore/index.json": {}
+        "/Users/techierathore/LocalNuGet": {},
+        "/usr/local/share/dotnet/library-packs": {},
+        "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "C:\\3AIGenCode\\TrSetup\\src\\TrSetup.Core\\TrSetup.Core.csproj": {
-              "projectPath": "C:\\3AIGenCode\\TrSetup\\src\\TrSetup.Core\\TrSetup.Core.csproj"
+            "/Volumes/MacD/MyCode/TrSetup/src/TrSetup.Core/TrSetup.Core.csproj": {
+              "projectPath": "/Volumes/MacD/MyCode/TrSetup/src/TrSetup.Core/TrSetup.Core.csproj"
             }
           }
         }
@@ -1475,7 +1438,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.301/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

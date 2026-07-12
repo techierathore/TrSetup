@@ -12,61 +12,61 @@ build_property.EntryPointFilePath =
 build_property._SupportedPlatformList = Linux,macOS,Windows,browser
 build_property.RootNamespace = TrSetupUI
 build_property.RootNamespace = TrSetupUI
-build_property.ProjectDir = C:\3AIGenCode\TrSetup\src\TrSetupUI\
+build_property.ProjectDir = /Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 10.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\3AIGenCode\TrSetup\src\TrSetupUI
+build_property.MSBuildProjectDirectory = /Volumes/MacD/MyCode/TrSetup/src/TrSetupUI
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Components/BoardView.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xCb2FyZFZpZXcucmF6b3I=
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Components/BoardView.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9Cb2FyZFZpZXcucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Components/ConsentDialog.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDb25zZW50RGlhbG9nLnJhem9y
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Components/ConsentDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9Db25zZW50RGlhbG9nLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Components/StatusLabel.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xTdGF0dXNMYWJlbC5yYXpvcg==
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Components/StatusLabel.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TdGF0dXNMYWJlbC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Layout/MainLayout.razor]
-build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE1haW5MYXlvdXQucmF6b3I=
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0L01haW5MYXlvdXQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Pages/CheckDetail.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ2hlY2tEZXRhaWwucmF6b3I=
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Pages/CheckDetail.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ2hlY2tEZXRhaWwucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Pages/FixRun.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRml4UnVuLnJhem9y
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Pages/FixRun.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvRml4UnVuLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Pages/Home.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSG9tZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Pages/Report.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUmVwb3J0LnJhem9y
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Pages/Report.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUmVwb3J0LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Pages/Settings.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2V0dGluZ3MucmF6b3I=
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Pages/Settings.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2V0dGluZ3MucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Pages/Setup.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2V0dXAucmF6b3I=
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Pages/Setup.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2V0dXAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/Routes.razor]
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/Routes.razor]
 build_metadata.AdditionalFiles.TargetPath = Um91dGVzLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/3AIGenCode/TrSetup/src/TrSetupUI/_Imports.razor]
+[/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 

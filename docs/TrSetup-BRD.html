@@ -239,14 +239,14 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <!-- Greenfield: this table is the build ROADMAP. Live per-REQ status lives in
      PROJECT-STATUS.md + docs/TrSetup-Checklist.md. AUTO-MAINTAINED after day-1. -->
 
-    <p><strong>Snapshot as of 2026-07-09.</strong> Live, per-requirement status: see <code>PROJECT-STATUS.md</code> and the <strong>Requirements Status</strong> table in <code>docs/TrSetup-Checklist.md</code>. <strong>Scope change 2026-07-09 (owner decision):</strong> the Web and CLI/TUI heads are withdrawn — decommission tracked by checklist <strong>REQ-FN-034</strong>, and a new standing Observability NFR (Serilog file logging in the MAUI head) is <strong>REQ-NFR-007</strong>. Pre-change baseline (2026-07-07 handoff): all 44 REQ built, 36 Verified, 8 pending UAT on external hosts, 0 FAIL.</p>
+    <p><strong>Snapshot as of 2026-07-11.</strong> Live, per-requirement status: see <code>PROJECT-STATUS.md</code> and the <strong>Requirements Status</strong> table in <code>docs/TrSetup-Checklist.md</code>. <strong>Scope change 2026-07-09 (owner decision):</strong> the Web and CLI/TUI heads are withdrawn — decommission tracked by checklist <strong>REQ-FN-034</strong>, and a new standing Observability NFR (Serilog file logging in the MAUI head) is <strong>REQ-NFR-007</strong>. Pre-change baseline (2026-07-07 handoff): all 44 REQ built, 36 Verified, 8 pending UAT on external hosts, 0 FAIL.</p>
 
     <table>
       <thead><tr><th>Feature (F-code)</th><th>Phase</th><th>Status</th><th>%</th><th>Notes</th></tr></thead>
       <tbody>
         <tr><td>F-ENGINE: Check engine</td><td>P1</td><td>Done</td><td>100</td><td>Contract + pipeline + runner + scoping + settings — all Verified</td></tr>
         <tr><td>F-ROLES: Machine roles &amp; role picker</td><td>P1/P6</td><td>Done</td><td>100</td><td>4 roles + native-dev; role picker + <strong>Settings screen <code>/settings</code> (BRD-56 / REQ-UI-006)</strong> both Verified 2026-07-09 (endpoints editable in-app, profile-details built-in-vs-override)</td></tr>
-        <tr><td>F-BOARD: Status board &amp; detail pane</td><td>P1</td><td>Done</td><td>100</td><td>Grouped board + detail sheet Verified (⚠ minor board mobile-overflow)</td></tr>
+        <tr><td>F-BOARD: Status board &amp; detail pane</td><td>P1</td><td>Done</td><td>100</td><td>Grouped board + detail sheet Verified; 2026-07-11: stuck-Pending streaming defect fixed + re-verified on the Mac; mobile-overflow caveat cleared</td></tr>
         <tr><td>F-WEBGUI: Blazor Server head</td><td>P1</td><td>Withdrawn</td><td>—</td><td>2026-07-09 owner decision; was Done/Verified; decommission under REQ-FN-034</td></tr>
         <tr><td>F-TUI: Terminal TUI</td><td>P1</td><td>Withdrawn</td><td>—</td><td>2026-07-09 owner decision; was Done (PTY-verified); decommission under REQ-FN-034</td></tr>
         <tr><td>F-WSLCHK: WSL check catalog</td><td>P1/P2</td><td>Partial</td><td>90</td><td>Detects Verified (live); auto-fixers built, live install = UAT</td></tr>
@@ -257,8 +257,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <tr><td>F-FIX: Fixers / installers &amp; Fix-all</td><td>P2</td><td>Partial</td><td>90</td><td>Download/config-write/fix-all/elevation frameworks Verified (unit); platform + ComfyUI/Postgres live installs = UAT</td></tr>
         <tr><td>F-ELEV: Elevation, consent &amp; secrets</td><td>P2</td><td>Done</td><td>100</td><td>Visible elevation, presence-only secrets; Verified</td></tr>
         <tr><td>F-PROFILES: App profiles</td><td>P3</td><td>Partial</td><td>95</td><td>Schema/loader/merge + AppStudio+TrStudio + appium-block writer Verified; ComfyUI/Postgres install = UAT</td></tr>
-        <tr><td>F-MACRUN: Mac app-runner role</td><td>P3</td><td>Partial</td><td>85</td><td>Role aggregation Verified; Catalyst build fixer built, runs on a Mac (UAT)</td></tr>
-        <tr><td>F-MAUIHEAD: MAUI head, logging &amp; distribution</td><td>P4/P6</td><td>Partial</td><td>95</td><td>MAUI Windows build+manifest+boot-persist done, visual render = UAT; <strong>decommission (BRD-54/REQ-FN-034) + Serilog file logging (BRD-55/REQ-NFR-007) Verified 2026-07-09</strong>; guide re-verified (BRD-45/FN-031); Catalyst build = Mac UAT</td></tr>
+        <tr><td>F-MACRUN: Mac app-runner role</td><td>P3</td><td>Partial</td><td>88</td><td>Role aggregation Verified; Catalyst fixer gate-detect budget fixed + re-verified 2026-07-11 (row settles with real gate evidence); FixPreview working-dir defect open; green-path build = Mac-with-Xcode UAT</td></tr>
+        <tr><td>F-MAUIHEAD: MAUI head, logging &amp; distribution</td><td>P4/P6</td><td>Partial</td><td>95</td><td>MAUI Windows build+manifest+boot-persist done, visual render = UAT; <strong>decommission (BRD-54/REQ-FN-034) + Serilog file logging (BRD-55/REQ-NFR-007) Verified</strong>; guide Verified 2026-07-11 (BRD-45/FN-031 — Catalyst command NETSDK1100 csproj defect fixed, restores clean on macOS); Catalyst .app build = Mac-with-full-Xcode UAT</td></tr>
         <tr><td>F-AGENT: --check --json agent mode</td><td>P5</td><td>Withdrawn</td><td>—</td><td>2026-07-09 owner decision (went with the CLI head); was Done/Verified; decommission under REQ-FN-034</td></tr>
       </tbody>
     </table>

@@ -244,7 +244,11 @@ dotnet publish src/TrSetup.Web -c Release -r osx-arm64 --self-contained true -o 
     <pre><code class="language-bash">cd /mnt/c/3AIGenCode/TrSetup
 cmd.exe /c "dotnet publish src\TrSetup.Web -c Release -r osx-arm64 --self-contained true -o publish\mac\TrSetup.Web"</code></pre>
 
-    <p><strong>Step 2 — copy the whole <code>publish/mac/TrSetup.Web/</code> folder to the Mac</strong> (Finder → Cmd+K → <code>smb://&lt;windows-ip&gt;</code>, or <code>scp -r</code>, or zip+AirDrop, or USB).</p>
+    <p><strong>Step 2 — copy the whole <code>publish/mac/TrSetup.Web/</code> folder to the Mac</strong> (Finder → Cmd+K → <code>smb://&lt;windows-ip&gt;</code>, or <code>scp -r</code>, or zip+AirDrop, or USB). <strong>Avoid drag-and-drop through a Remote Desktop window</strong> — RDP file transfer can silently create 0-byte placeholder files (seen 2026-07-11: two "copies" landed hollow in the RDP temp container and nothing runnable ever reached the Mac).</p>
+
+    <p><strong>Step 2a — verify the copy before running it</strong> (copy-paste on the Mac; adjust the path):</p>
+    <pre><code class="language-bash">du -sh TrSetup.Web                     # must be ~120 MB, not 0B
+find TrSetup.Web -type f -size 0 | wc -l   # must print 0</code></pre>
 
     <p><strong>Step 3 — on the Mac, in Terminal</strong> (copy-paste; the first line assumes you copied the folder to <code>~/Downloads</code> — adjust if elsewhere):</p>
     <pre><code class="language-bash">cd ~/Downloads
@@ -257,6 +261,13 @@ xattr -dr com.apple.quarantine TrSetup.Web       # clear Gatekeeper quarantine (
     <p><strong>Step 5 — first run:</strong> complete the role picker — tick <strong>Device host (Mac)</strong> and <strong>App runner (Mac)</strong>, pick <strong>AppStudio</strong>, <strong>Save &amp; scan</strong>. (Or pre-seed the settings file before Step 3: <code>cp docs/samples/appstudio-mac-runner.json ~/.trsetup/settings.json</code> — see <a href="#seed-settings-by-copying-a-sample-file">§5.3</a>.)</p>
 
     <p>You now have the full board with <strong>live Mac detect evidence</strong> — the <code>mac.*</code> rows (Xcode/CLT, .NET+MAUI, Node, Appium xcuitest/mac2, LaunchAgent :4723, stable IP, iOS Simulator) show real Pass/Fail/Warn for <em>this</em> Mac.</p>
+
+    <blockquote>
+      <p><strong>Option A′ — publish directly on the Mac (no Windows machine needed):</strong> if the Mac has the repo and the .NET 10 SDK, and the private TrBlazeUI packages are restorable there (this Mac has them in the local feed <code>~/LocalNuGet</code>, registered 2026-07-11 — reconstructed 1.0.7 nupkgs with the real assemblies + static assets), you can skip the copy entirely:</p>
+      <pre><code class="language-bash">cd &lt;repo-root&gt;
+dotnet publish src/TrSetup.Web -c Release -r osx-arm64 --self-contained true -o publish/mac/TrSetup.Web
+./publish/mac/TrSetup.Web/TrSetup.Web        # board on http://localhost:5999</code></pre>
+    </blockquote>
 
     <h3 id="option-b-native-catalyst-app-build-on-the-mac">Option B — native Catalyst .app (build on the Mac)<a class="anchor-link" href="#option-b-native-catalyst-app-build-on-the-mac">#</a></h3>
 
@@ -431,6 +442,8 @@ Copy-Item docs\samples\appstudio-windows-device-host.json $env:APPDATA\TrSetup\s
         <tr><td><code>NETSDK1139</code> / unknown TFM <code>net10.0-maccatalyst</code></td><td>Windows</td><td>Expected — the Catalyst head only builds on macOS (<a href="#option-b-native-catalyst-app-build-on-the-mac">§3 Option B</a>)</td></tr>
         <tr><td>Port busy / wrong port (browser board)</td><td>Mac/WSL</td><td><code>ASPNETCORE_URLS=http://localhost:5999</code> before launching; <code>TRSETUP_NO_BROWSER=1</code> stops the auto-open</td></tr>
         <tr><td>A lowercase <code>trsetup</code> folder appears under <code>publish/&lt;rid&gt;/</code></td><td>any</td><td><strong>Do not run it</strong> — that is the publish output of the deleted Spectre CLI head (removed 2026-07-09, REQ-FN-034; stale copies were purged 2026-07-10). If one reappears it is a stale artifact — delete it. The only supported ways to run TrSetup are §2–§4</td></tr>
+        <tr><td>Board is raw unstyled HTML, or startup crashes with <code>DirectoryNotFoundException: /home/…</code> or <code>/mnt/c/…</code></td><td>Mac (browser board)</td><td>Two known causes, both fixed for builds published after 2026-07-11: (1) <strong>launching the publish from a different working directory</strong> — the host used to resolve <code>wwwroot/</code> from the launch cwd, so every CSS/JS 404'd; the content root is now pinned to the binary's folder, so launch it from anywhere. (2) You ran a <strong><code>bin/Debug</code> build-output folder copied from another machine</strong> — its static-asset manifest points at the <em>build</em> machine's paths (pre-2026-07-11 builds crashed outright; the startup guard boots but serves wwwroot only). Never copy <code>bin/</code>; copy a <strong>published</strong> output (<a href="#option-a-no-build-tools-on-the-mac-browser-board-recommended-first">§3 Option A</a> Step 1) or publish on the Mac (Option A′). If you still see raw HTML, re-publish — you are running a pre-fix binary</td></tr>
+        <tr><td>Copied folder won't run; files are 0 bytes</td><td>Mac</td><td>The folder was dragged through a Remote Desktop window — RDP transfer can create hollow placeholder files. Re-copy via SMB/<code>scp</code>/zip and run the §3 Step 2a check</td></tr>
         <tr><td>Board rows show <code>○ N/A</code></td><td>any</td><td>Not an error — only your selected roles' + app's checks run; widen the roles in Settings</td></tr>
         <tr><td>Board cramped below ~390 px width</td><td>any</td><td>Known minor item — the status table needs horizontal scroll; desktop is the target</td></tr>
       </tbody>

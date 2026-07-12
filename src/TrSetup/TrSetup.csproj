@@ -2,14 +2,16 @@
 
     <PropertyGroup>
         <!--
-          Target frameworks.
-          The Windows head is the active head and always builds (WSL/Windows build ladder rung #4).
-          The Mac Catalyst head (ADR-006, REQ-FN-030) is appended ONLY when the build host is macOS,
-          via the IsOSPlatform('OSX') guard, so it never affects the Windows-side build — the same
-          pattern AppStudio uses. Building/validating maccatalyst happens ON the Mac (Cluster I).
+          Target frameworks — fully OS-conditional both ways (REQ-FN-030 FIX 2026-07-11).
+          On Windows/WSL the list is net10.0-windows only (the active head, build ladder rung #4);
+          the IsOSPlatform('OSX') condition is false there, so the second line never applies and the
+          Windows-side build is untouched. On macOS the second line REPLACES the list with
+          net10.0-maccatalyst only (ADR-006) — it must not merely append, because restore would then
+          still evaluate the windows TFM on the Mac and fail with NETSDK1100 (Windows targeting not
+          enabled). Building/validating maccatalyst happens ON the Mac (Cluster I).
         -->
         <TargetFrameworks>net10.0-windows10.0.19041.0</TargetFrameworks>
-        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(TargetFrameworks);net10.0-maccatalyst</TargetFrameworks>
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('OSX'))">net10.0-maccatalyst</TargetFrameworks>
 
         <OutputType>Exe</OutputType>
         <RootNamespace>TrSetup</RootNamespace>

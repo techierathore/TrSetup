@@ -16,13 +16,16 @@
 /test-results/
 /.verify/
 *.log
-/tests
 /.vs
 /package.json
 /package-lock.json
 /nuget.config
-/playwright.config.ts
 /TrSetupReport-20260706-140549.md
 /docs/screenshots/TrSetup
 /docs/.last-verify.json
 /.editorconfig
+
+# TechieFlow agent artifacts — machine-generated test harness & logs, never commit (managed by scaffold/update-framework.sh)
+playwright-report/
+logs/
+.DS_Store

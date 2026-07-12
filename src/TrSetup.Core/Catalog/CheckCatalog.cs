@@ -21,6 +21,13 @@ namespace TrSetup.Core.Catalog;
 public static class CheckCatalog
 {
     /// <summary>
+    /// Per-prerequisite detect budget for the Catalyst build gate (REQ-FN-028): each prerequisite
+    /// re-detect is hard-bounded so the whole gate detect (run in parallel) settles well inside the
+    /// engine's 5 s row budget even when one prerequisite hangs (e.g. an unauthenticated feed probe).
+    /// </summary>
+    public static readonly TimeSpan PrerequisiteProbeTimeout = TimeSpan.FromSeconds(3.5);
+
+    /// <summary>
     /// Creates every built-in check in board order (Framework core rows first, then the
     /// cross-machine Bridges probes). The engine scopes them to (machine roles ∩ selected app)
     /// at enumeration time — this list is always the full set.
@@ -165,23 +172,62 @@ public static class CheckCatalog
     }
 
     /// <summary>
-    /// Detects the app's AppRunnerMac prerequisites and returns the ids of those that come back
-    /// <see cref="CheckStatus.Fail"/> — the live "still red" set that gates the Catalyst build fixer.
+    /// Detects the app's AppRunnerMac prerequisites — all in parallel, each hard-bounded by
+    /// <see cref="PrerequisiteProbeTimeout"/> — and returns the ids of those that come back
+    /// <see cref="CheckStatus.Fail"/>: the live "still red" set that gates the Catalyst build fixer
+    /// (REQ-FN-028). A prerequisite that times out or throws is counted red (the gate never assumes
+    /// green) and its id carries a "not confirmed green" suffix so the evidence stays honest.
+    /// The returned list is deterministic: prerequisites in catalog order.
     /// </summary>
-    private static async Task<IReadOnlyList<string>> DetectRedIdsAsync(
+    /// <param name="aPrerequisites">The gate's prerequisite checks, in catalog order.</param>
+    /// <param name="aCancellationToken">Cancels the whole gate detect.</param>
+    /// <param name="aPerPrerequisiteTimeout">Per-prerequisite budget override for tests; defaults to <see cref="PrerequisiteProbeTimeout"/>.</param>
+    /// <returns>The red (or not-confirmed-green) prerequisite ids in catalog order; empty when all green.</returns>
+    internal static async Task<IReadOnlyList<string>> DetectRedIdsAsync(
         IReadOnlyList<Check> aPrerequisites,
+        CancellationToken aCancellationToken,
+        TimeSpan? aPerPrerequisiteTimeout = null)
+    {
+        var vTimeout = aPerPrerequisiteTimeout ?? PrerequisiteProbeTimeout;
+        var vTasks = aPrerequisites
+            .Select(aCheck => DetectPrerequisiteRedIdAsync(aCheck, vTimeout, aCancellationToken))
+            .ToList();
+        var vRedIds = await Task.WhenAll(vTasks).ConfigureAwait(false);
+        return vRedIds.Where(aRedId => aRedId is not null).Select(aRedId => aRedId!).ToList();
+    }
+
+    /// <summary>
+    /// Detects one prerequisite within the given hard budget and reports its red id — <c>null</c>
+    /// when it confirms green (Pass/Warn/NotApplicable), the plain id on a confirmed
+    /// <see cref="CheckStatus.Fail"/>, or the id with a "not confirmed green" suffix when the
+    /// probe timed out or threw.
+    /// </summary>
+    /// <param name="aCheck">The prerequisite check to detect.</param>
+    /// <param name="aTimeout">The hard per-prerequisite budget.</param>
+    /// <param name="aCancellationToken">Cancels the probe.</param>
+    /// <returns>The red id to report, or <c>null</c> when the prerequisite is confirmed non-red.</returns>
+    private static async Task<string?> DetectPrerequisiteRedIdAsync(
+        Check aCheck,
+        TimeSpan aTimeout,
         CancellationToken aCancellationToken)
     {
-        var vReds = new List<string>();
-        foreach (var vCheck in aPrerequisites)
+        using var vTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(aCancellationToken);
+        vTimeoutCts.CancelAfter(aTimeout);
+        try
         {
-            var vResult = await vCheck.DetectAsync(aCancellationToken).ConfigureAwait(false);
-            if (vResult.Status == CheckStatus.Fail)
-            {
-                vReds.Add(vCheck.Id);
-            }
+            // WaitAsync hard-bounds the detect even when the check ignores its token.
+            var vResult = await aCheck.DetectAsync(vTimeoutCts.Token)
+                .WaitAsync(vTimeoutCts.Token)
+                .ConfigureAwait(false);
+            return vResult.Status == CheckStatus.Fail ? aCheck.Id : null;
         }
-
-        return vReds;
+        catch (OperationCanceledException) when (!aCancellationToken.IsCancellationRequested)
+        {
+            return $"{aCheck.Id} (not confirmed green: timed out after {aTimeout.TotalSeconds:0.#} s)";
+        }
+        catch (Exception vEx) when (vEx is not OperationCanceledException)
+        {
+            return $"{aCheck.Id} (not confirmed green: probe threw {vEx.GetType().Name})";
+        }
     }
 }

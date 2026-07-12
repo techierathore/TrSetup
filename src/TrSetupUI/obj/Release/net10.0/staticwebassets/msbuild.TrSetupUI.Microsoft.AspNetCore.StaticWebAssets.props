@@ -17,7 +17,7 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <FileLength>3161</FileLength>
-      <LastWriteTime>Mon, 06 Jul 2026 13:55:33 GMT</LastWriteTime>
+      <LastWriteTime>Sat, 11 Jul 2026 07:49:50 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\theme.css'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\trsetup.css'))">
@@ -37,7 +37,7 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <FileLength>17173</FileLength>
-      <LastWriteTime>Thu, 09 Jul 2026 14:15:54 GMT</LastWriteTime>
+      <LastWriteTime>Sat, 11 Jul 2026 07:49:50 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\trsetup.css'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\trsetup.js'))">
@@ -57,7 +57,7 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <FileLength>828</FileLength>
-      <LastWriteTime>Mon, 06 Jul 2026 13:56:49 GMT</LastWriteTime>
+      <LastWriteTime>Sat, 11 Jul 2026 07:49:50 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\trsetup.js'))</OriginalItemSpec>
     </StaticWebAsset>
   </ItemGroup>

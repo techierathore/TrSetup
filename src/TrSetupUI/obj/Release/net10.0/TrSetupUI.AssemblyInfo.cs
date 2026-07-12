@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TrSetupUI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+847dc2ba9068b7fac871827b64c7fc444d28a4be")]
 [assembly: System.Reflection.AssemblyProductAttribute("TrSetupUI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TrSetupUI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

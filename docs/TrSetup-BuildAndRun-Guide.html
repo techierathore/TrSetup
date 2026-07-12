@@ -198,14 +198,14 @@ xattr -dr com.apple.quarantine TrSetup.Web          # clear Gatekeeper quarantin
 
     <h3 id="option-b-native-catalyst-app-built-on-the-mac">Option B — native Catalyst <code>.app</code> (built on the Mac)<a class="anchor-link" href="#option-b-native-catalyst-app-built-on-the-mac">#</a></h3>
 
-    <p>Prerequisites on the Mac (install manually — since the CLI bootstrapper head is withdrawn, TrSetup no longer installs its own build toolchain): Xcode (full, licence accepted), .NET 10 SDK, the MAUI workload (<code>dotnet workload install maui</code>), and git.</p>
+    <p>Prerequisites on the Mac (install manually — since the CLI bootstrapper head is withdrawn, TrSetup no longer installs its own build toolchain): <strong>full Xcode</strong> (licence accepted — the Command Line Tools alone are <strong>not</strong> enough: on a CLT-only Mac the build fails with <code>error : Could not find a valid Xcode app bundle at '/Library/Developer/CommandLineTools'. Please verify that 'xcode-select -p' points to your Xcode installation.</code> — i.e. the board's <strong>mac.xcode</strong> row must be green first), .NET 10 SDK, the MAUI workload (<code>dotnet workload install maui</code>), and git.</p>
 
 <pre><code class="language-bash">git clone &lt;TrSetup repo&gt; &amp;&amp; cd TrSetup
 dotnet build src/TrSetup -f net10.0-maccatalyst -c Release
 open "src/TrSetup/bin/Release/net10.0-maccatalyst/maccatalyst-arm64/TrSetup.app"</code></pre>
 
     <ul>
-      <li>The <code>net10.0-maccatalyst</code> TFM is appended to <code>TrSetup.csproj</code> <strong>only on macOS</strong> (an <code>IsOSPlatform('OSX')</code> guard on <code>&lt;TargetFrameworks&gt;</code>), so this command is a no-op / unknown-TFM on Windows — Catalyst genuinely can only be built on the Mac (the §1 toolchain rule).</li>
+      <li>On macOS the <code>IsOSPlatform('OSX')</code> guard in <code>TrSetup.csproj</code> <strong>replaces</strong> <code>&lt;TargetFrameworks&gt;</code> with <code>net10.0-maccatalyst</code> only, so this command restores and builds cleanly on the Mac — no <code>NETSDK1100</code>, no <code>EnableWindowsTargeting</code> flag needed (the windows TFM is never evaluated there). On Windows the condition is false and the list stays windows-only, so this command is a no-op / unknown-TFM there — Catalyst genuinely can only be built on the Mac (the §1 toolchain rule).</li>
       <li>Output bundle: <strong><code>src/TrSetup/bin/Release/net10.0-maccatalyst/maccatalyst-arm64/TrSetup.app</code></strong> on Apple Silicon (an Intel Mac emits <code>maccatalyst-x64/</code> — the RID sub-folder follows the build host's architecture).</li>
       <li><strong>Ad-hoc signed, no Apple certificate needed.</strong> The csproj sets <code>&lt;CodesignKey&gt;-&lt;/CodesignKey&gt;</code> + <code>&lt;CreatePackage&gt;false&lt;/CreatePackage&gt;</code> under a maccatalyst-guarded <code>PropertyGroup</code>, so the build produces a runnable <code>.app</code> (not a <code>.pkg</code>) signed with codesign's ad-hoc identity — a personal, unnotarised build. First launch may hit Gatekeeper ("cannot verify the developer"); clear it once with <code>xattr -dr com.apple.quarantine "…/TrSetup.app"</code> or allow it via System Settings → Privacy &amp; Security.</li>
       <li>The window/board chrome carries the same AutomationIds as the Windows head (<code>TrSetupMainPage</code> page, <code>TrSetupBlazorWebView</code> web view) so the Appium <code>mac2</code> driver attaches by bundle id <code>com.techierathore.trsetup</code>.</li>
@@ -219,6 +219,7 @@ open "src/TrSetup/bin/Release/net10.0-maccatalyst/maccatalyst-arm64/TrSetup.app"
       <li><strong>Windows "This program might not have installed correctly" popup</strong> — suppressed by the embedded PCA-exemption manifest; see the note in §2. Only older builds (before the manifest) can show it; clear the cached entry with <strong>"This program installed correctly"</strong>.</li>
       <li><strong>macOS "cannot verify the developer"</strong> — the Catalyst <code>.app</code> is an ad-hoc-signed personal build under Gatekeeper quarantine. Fix: <code>xattr -dr com.apple.quarantine "…/TrSetup.app"</code>, or allow once via System Settings → Privacy &amp; Security (see §3).</li>
       <li><strong><code>NETSDK1139</code> / unknown TFM <code>net10.0-maccatalyst</code> when building on Windows</strong> — expected, not a bug: the Catalyst TFM only activates on macOS (the csproj guard in §3). Build the Catalyst head on the Mac.</li>
+      <li><strong><code>Could not find a valid Xcode app bundle at '/Library/Developer/CommandLineTools'</code> when building Catalyst on the Mac</strong> — the Mac has only the Command Line Tools; the Catalyst head needs <strong>full Xcode</strong> (§3 Option B prerequisites — the board's <strong>mac.xcode</strong> row). Install Xcode, accept the licence, and point the tools at it: <code>sudo xcode-select -s /Applications/Xcode.app</code>.</li>
     </ul>
 
     <hr>

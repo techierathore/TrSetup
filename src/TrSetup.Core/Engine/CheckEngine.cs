@@ -138,7 +138,12 @@ public sealed class CheckEngine
         vTimeoutCts.CancelAfter(aTimeout);
         try
         {
-            return await aCheck.DetectAsync(vTimeoutCts.Token).ConfigureAwait(false);
+            // WaitAsync hard-bounds the probe: even a check that ignores its CancellationToken
+            // (network probe, stuck subprocess) settles as a timeout when the budget fires,
+            // instead of leaving the row un-detected forever (REQ-UI-001 hang fix).
+            return await aCheck.DetectAsync(vTimeoutCts.Token)
+                .WaitAsync(vTimeoutCts.Token)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!aCancellationToken.IsCancellationRequested)
         {

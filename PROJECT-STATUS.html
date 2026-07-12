@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TrSetup — Status</h1>
-    <div class="sub">Last rendered: 2026-07-10</div>
+    <div class="sub">Last rendered: 2026-07-11</div>
     <div class="group">Contents</div>
     <ol>
       <li><a href="#where-i-am">Where I am</a></li>
@@ -123,7 +123,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     <h1>TrSetup — Status</h1>
     <div class="subtitle">
       Stack: .NET 10 / Blazor (TrSetupUI RCL on TrBlazeUI) / MAUI Blazor Hybrid desktop (Windows + Mac Catalyst) / no DB / no RAG<br>
-      Current phase: UAT — all agent-verifiable REQs Verified; 8 owner-run host-bound rows remain · Last verified build: PASS (2026-07-10) · Last updated: 2026-07-10
+      Current phase: Fix/UAT — Mac-run defects fixed + re-verified; FN-028 working-dir defect, then owner UAT · Last verified build: PASS (2026-07-11) · Last updated: 2026-07-11
     </div>
 
     <div class="toc-inline">
@@ -141,20 +141,24 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     </div>
 
     <h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-    <p>TrSetup ships as <strong>ONE MAUI Blazor Hybrid desktop app</strong>: <code>src/TrSetup</code> (<strong>renamed from <code>TrSetup.App</code> on 2026-07-10, REQ-FN-035</strong> — dir, csproj, sln, namespaces, docs/harness paths updated; bundle id + AutomationIds unchanged). <code>TrSetup.Web</code> remains the test-only headless smoke host (:5999). The four 2026-07-10-demoted rows (FN-031/FN-034/NFR-007/UI-006) plus FN-035 are now <strong>Verified by an executed verify-phase run</strong> (run ledger <code>docs/.last-verify.json</code>): 7/7 Playwright specs (render + visual gates, screenshots inspected), 126/126 Core unit tests, and the renamed <code>TrSetup.exe</code> built via the guide's verbatim command and booted live (Serilog log written).</p>
+    <p>TrSetup ships as <strong>ONE MAUI Blazor Hybrid desktop app</strong>: <code>src/TrSetup</code>; <code>TrSetup.Web</code> remains the test-only headless smoke host (:5999). <strong>2026-07-11 evening — all three Mac-run defects fixed and re-verified ON the Mac</strong> (fix-issues + executed verify-phase, ledger <code>docs/.last-verify.json</code>): the stuck-Pending board streaming defect is gone (UI-001 → <strong>Verified</strong>; every row settles, suite now rejects "Pending"), the Catalyst gate-detect is parallel + budget-bounded (FN-028 verifiable portion re-verified; FixPreview working-dir defect still open), and the documented Catalyst build command restores cleanly on macOS (FN-030 NETSDK1100 cleared → Implemented, <code>.app</code> production needs a full-Xcode Mac; FN-031 guide → <strong>Verified</strong>). Remaining work: FN-028's working-dir defect (agent-fixable), then the owner-run UAT rows. Note: <code>tests/unit</code> is gitignored, so the historical 126-test suite is WSL-local only — this Mac now carries the 10 new engine/gate tests; owner should copy the WSL suite over.</p>
 
     <h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
-    <pre><code>(owner-run) Walk docs/TrSetup-UsageGuide.md §"UAT plan — the 8 pending rows" (FN-008/014/015/016/025/026/028/030), then set current_phase: Released.</code></pre>
+    <pre><code>*fix-issues REQ-FN-028 (FixPreview/Fix working dir resolves to the process cwd — add a configured + validated AppStudio repo path)</code></pre>
+    <p>Then owner-run UAT: walk docs/TrSetup-UsageGuide.md §"UAT plan" (FN-014/015/016/025/026, FN-008 §6.2, FN-028 green-path, FN-030 Windows visual + Catalyst .app on a full-Xcode Mac).</p>
 
     <h2 id="open-requirements">Open requirements<a class="anchor-link" href="#open-requirements">#</a></h2>
     <ul>
-      <li>☐ UAT (Implemented, external-host actions — owner runs): FN-014/015/016/025/026 destructive live installs · FN-008 Mac detects · FN-028 Catalyst build (Mac) · FN-030 Windows visual board render</li>
+      <li>☐ Defect (agent-fixable): FN-028 FixPreview/Fix working dir = process cwd; no configured AppStudio repo path (observed live 2026-07-11)</li>
+      <li>☐ UAT (Implemented, external-host actions — owner runs): FN-014/015/016/025/026 destructive live installs · FN-008 owner walk-through §6.2 · FN-028 Catalyst fixer green-path (needs full Xcode + green prereqs) · FN-030 Windows visual board render + Mac Catalyst <code>.app</code> build (needs full Xcode)</li>
     </ul>
-    <p>Counts: <strong>34 Verified · 8 Implemented (external UAT) · 6 N/A</strong> (of 48). 0 FAIL · 0 Needs re-verify · 0 Planned.</p>
+    <p>Counts: <strong>34 Verified · 9 Implemented (external UAT / defect) · 6 N/A · 0 FAIL · 0 Needs re-verify</strong> (of 49 rows incl. FN-035). 0 Planned.</p>
 
     <h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
     <ul>
-      <li>None. (Installer per-version SHA-256 pinning remains a deferred follow-up, not a blocker.)</li>
+      <li>Catalyst <code>.app</code> production needs <strong>full Xcode</strong> on the build Mac (this machine has CLT only — legitimate host prerequisite, tracked by the board's own mac.xcode row; the csproj/guide defect that blocked every Mac is fixed).</li>
+      <li>Historical unit-test suite is not in git (<code>/tests</code> gitignored) — copy <code>tests/unit/TrSetup.Core.Tests</code> from the WSL clone (or un-ignore <code>/tests</code>) to reunite the 126 tests with the 10 new ones.</li>
+      <li>(Installer per-version SHA-256 pinning remains a deferred follow-up, not a blocker.)</li>
     </ul>
 
     <h2 id="verification-log">Verification log<a class="anchor-link" href="#verification-log">#</a></h2>
@@ -176,6 +180,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <tr><td>2026-07-09</td><td>Mac copy-to-binaries path (flow-master)</td><td>BUILT + documented — <code>TrSetup.Web</code> self-contained osx-arm64 publish; BuildAndRun §3 Options A/B</td><td>docs/TrSetup-Checklist.md#requirements-status</td></tr>
         <tr><td>2026-07-10</td><td>Verdict audit + naming standard (framework session)</td><td>FN-031/FN-034/NFR-007/UI-006 demoted to <code>Needs re-verify</code> (self-attested); REQ-FN-035 added</td><td>docs/TrSetup-Checklist.md#requirements-status</td></tr>
         <tr><td>2026-07-10</td><td>P6 build-phase FN-035 rename + executed verify-phase (chained inline)</td><td>PASS — rename done; build rung #4 0W/0E; exe booted; 126 unit; 7/7 verify specs; ledger written. FN-031/034/NFR-007/UI-006/FN-035 → Verified; UI-001..005 re-confirmed</td><td>docs/TrSetup-Checklist.md#requirements-status</td></tr>
+        <tr><td>2026-07-11</td><td>fix-issues: unstyled Web board (owner screenshots issuessc/, ON the Mac)</td><td>PASS — root cause: content root defaulted to launch cwd, so a publish started elsewhere 404'd every static asset (raw HTML; the §3 A′ runbook itself triggered it). Fixed: <code>ContentRootPath = AppContext.BaseDirectory</code> (Program.cs, [REQ-FN-034]); publish rebuilt; re-verified styled from repo root + publish/mac (owner's cwd) + <code>dotnet run</code> — 4/4 assets 200, 7/7 specs, screenshot inspected. UsageGuide §7 row updated</td><td>docs/TrSetup-Checklist.md#requirements-status</td></tr>
+        <tr><td>2026-07-11</td><td>verify-phase <code>phase-mac</code> (verifier, ON the Mac, ledger docs/.last-verify.json)</td><td>MIXED — 7/7 UI specs + render/visual gates PASS on the styled :5999 board (mobile-390px caveat not reproduced); FN-008 detects live-correct 7/7; FN-027 re-confirmed. FOUND: FN-030 Catalyst cmd FAIL (NETSDK1100 on macOS), FN-031 + UI-001 → Needs re-verify (guide falsified; stuck-Pending row streaming), FN-028 detect can hang (gate chain)</td><td>docs/TrSetup-Checklist.md#requirements-status</td></tr>
+        <tr><td>2026-07-11</td><td>Mac UAT-blocker fix (flow-master, on the Mac)</td><td>PASS — owner's "Web UI completely broken" root-caused: (1) the §3 Option A copy landed as 0-byte RDP placeholders (nothing runnable ever reached the Mac) and (2) the WSL <code>bin/Debug</code> output on the copied repo crashes on foreign machines (<code>UseStaticWebAssets</code> → DirectoryNotFoundException, Program.cs:25). Fixes: TrBlazeUI 1.0.7 nupkgs reconstructed into <code>~/LocalNuGet</code> on the Mac (real DLLs + static assets); Program.cs startup guard added; <code>publish/mac/TrSetup.Web</code> (osx-arm64, self-contained) built ON the Mac, booted, Playwright-smoked — styled board, live <code>mac.*</code> evidence, 0 errors. FN-008 live-smoked (stays Implemented — owner UAT §6.2 + verifier pending). UsageGuide §3/§7 updated (copy-verify step, Option A′ local publish, 2 new troubleshooting rows)</td><td>docs/TrSetup-Checklist.md#requirements-status</td></tr>
+        <tr><td>2026-07-11</td><td>fix-issues FN-030/UI-001/FN-028 + executed verify-phase re-verify (ON the Mac, ledger docs/.last-verify.json)</td><td>PASS — 3 root causes fixed (BoardView parameterless-child re-render skip + engine hard probe timeout; gate detect parallel + 3.5s/prereq bound; csproj TFM guard now replaces the list on OSX). 8/8 specs (suite now rejects "Pending"; new full-settlement test), 10/10 unit, catalyst-build4.log 0×NETSDK1100 (stops only at full-Xcode host state), screenshots inspected. UI-001 + FN-031 → Verified; FN-030 FAIL cleared → Implemented (Xcode UAT); FN-028 re-verified, working-dir defect open</td><td>docs/TrSetup-Checklist.md#requirements-status</td></tr>
       </tbody>
     </table>
 

@@ -244,34 +244,27 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\srkra\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "/Users/techierathore/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\3AIGenCode\\TrSetup\\src\\TrSetup.Core\\TrSetup.Core.csproj",
+      "projectUniqueName": "/Volumes/MacD/MyCode/TrSetup/src/TrSetup.Core/TrSetup.Core.csproj",
       "projectName": "TrSetup.Core",
-      "projectPath": "C:\\3AIGenCode\\TrSetup\\src\\TrSetup.Core\\TrSetup.Core.csproj",
-      "packagesPath": "C:\\Users\\srkra\\.nuget\\packages\\",
-      "outputPath": "C:\\3AIGenCode\\TrSetup\\src\\TrSetup.Core\\obj\\",
+      "projectPath": "/Volumes/MacD/MyCode/TrSetup/src/TrSetup.Core/TrSetup.Core.csproj",
+      "packagesPath": "/Users/techierathore/.nuget/packages/",
+      "outputPath": "/Volumes/MacD/MyCode/TrSetup/src/TrSetup.Core/obj/",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\3AIGenCode\\TrSetup\\NuGet.Config",
-        "C:\\Users\\srkra\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/Users/techierathore/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
-        "C:\\Program Files\\dotnet\\library-packs": {},
-        "https://api.nuget.org/v3/index.json": {},
-        "https://nuget.pkg.github.com/techierathore/index.json": {}
+        "/Users/techierathore/LocalNuGet": {},
+        "/usr/local/share/dotnet/library-packs": {},
+        "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
@@ -322,7 +315,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.301/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

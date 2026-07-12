@@ -1476,21 +1476,21 @@
     "TrBlazeUI.Components/1.0.7": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-xregZLrPm6WFRN53H8OvPybaoRrgcRchvPgl6pz26mnu8HQl8l8WTuRfXUiJMNgWr4akFWOKl8ptjbHTcMpkrQ==",
+      "sha512": "sha512-WLMjZpvFtrbIAoigT269sONCWUvBrEouNYK1TUPs2jlrg9PKuwTPED8mB0oa1L6mo6ajSV3k20NjIA7Gbani8w==",
       "path": "trblazeui.components/1.0.7",
       "hashPath": "trblazeui.components.1.0.7.nupkg.sha512"
     },
     "TrBlazeUI.Icons.Lucide/1.0.7": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-pV3PNuhxVCzWqx0IRqbtVtH4PC0NCfrOKn07SNIXsowKJcxax+1erAmit40qdjs7tCCxNVIyOja5rAWxkaKnxw==",
+      "sha512": "sha512-69rcmiAmp9zb74r0KzTvEksj/oNPzm4ZRh7LmKvMBbomgKcRAeTz5aLbhNam/sjGTKreXA3lb5MKlsk+/coLfA==",
       "path": "trblazeui.icons.lucide/1.0.7",
       "hashPath": "trblazeui.icons.lucide.1.0.7.nupkg.sha512"
     },
     "TrBlazeUI.Primitives/1.0.7": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-aDx9RTxoMmDRQdfNKBYs4tqbjCc3UhJHlVkkcKnpMvLbuZ3R6ExfTjTaASdLDlE4s4jmKfFCl0MANCFyuJGZww==",
+      "sha512": "sha512-IdGDlKtFRoKV06bAvAIVv5fcbiuPR9t7ycGZeMAxOCILx7AXp2JYiTQ9kP3GzzAg3xHefV50tm2Zp4djhRw2fQ==",
       "path": "trblazeui.primitives/1.0.7",
       "hashPath": "trblazeui.primitives.1.0.7.nupkg.sha512"
     },

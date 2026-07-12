@@ -80,13 +80,13 @@ What you have to run today, per environment (the pain TrSetup deletes):
 <!-- Greenfield: this table is the build ROADMAP. Live per-REQ status lives in
      PROJECT-STATUS.md + docs/TrSetup-Checklist.md. AUTO-MAINTAINED after day-1. -->
 
-**Snapshot as of 2026-07-09.** Live, per-requirement status: see `PROJECT-STATUS.md` and the **Requirements Status** table in `docs/TrSetup-Checklist.md`. **Scope change 2026-07-09 (owner decision):** the Web and CLI/TUI heads are withdrawn — decommission tracked by checklist **REQ-FN-034**, and a new standing Observability NFR (Serilog file logging in the MAUI head) is **REQ-NFR-007**. Pre-change baseline (2026-07-07 handoff): all 44 REQ built, 36 Verified, 8 pending UAT on external hosts, 0 FAIL.
+**Snapshot as of 2026-07-11.** Live, per-requirement status: see `PROJECT-STATUS.md` and the **Requirements Status** table in `docs/TrSetup-Checklist.md`. **Scope change 2026-07-09 (owner decision):** the Web and CLI/TUI heads are withdrawn — decommission tracked by checklist **REQ-FN-034**, and a new standing Observability NFR (Serilog file logging in the MAUI head) is **REQ-NFR-007**. Pre-change baseline (2026-07-07 handoff): all 44 REQ built, 36 Verified, 8 pending UAT on external hosts, 0 FAIL.
 
 | Feature (F-code) | Phase | Status | % | Notes |
 |------------------|-------|--------|---|-------|
 | F-ENGINE: Check engine | P1 | Done | 100 | Contract + pipeline + runner + scoping + settings — all Verified |
 | F-ROLES: Machine roles & role picker | P1/P6 | Done | 100 | 4 roles + native-dev; role picker + **Settings screen `/settings` (BRD-56 / REQ-UI-006)** both Verified 2026-07-09 (endpoints editable in-app, profile-details built-in-vs-override) |
-| F-BOARD: Status board & detail pane | P1 | Done | 100 | Grouped board + detail sheet Verified (⚠ minor board mobile-overflow) |
+| F-BOARD: Status board & detail pane | P1 | Done | 100 | Grouped board + detail sheet Verified; 2026-07-11: stuck-Pending streaming defect fixed + re-verified on the Mac; mobile-overflow caveat cleared |
 | F-WEBGUI: Blazor Server head | P1 | Withdrawn | — | 2026-07-09 owner decision; was Done/Verified; decommission under REQ-FN-034 |
 | F-TUI: Terminal TUI | P1 | Withdrawn | — | 2026-07-09 owner decision; was Done (PTY-verified); decommission under REQ-FN-034 |
 | F-WSLCHK: WSL check catalog | P1/P2 | Partial | 90 | Detects Verified (live); auto-fixers built, live install = UAT |
@@ -97,8 +97,8 @@ What you have to run today, per environment (the pain TrSetup deletes):
 | F-FIX: Fixers / installers & Fix-all | P2 | Partial | 90 | Download/config-write/fix-all/elevation frameworks Verified (unit); platform + ComfyUI/Postgres live installs = UAT |
 | F-ELEV: Elevation, consent & secrets | P2 | Done | 100 | Visible elevation, presence-only secrets; Verified |
 | F-PROFILES: App profiles | P3 | Partial | 95 | Schema/loader/merge + AppStudio+TrStudio + appium-block writer Verified; ComfyUI/Postgres install = UAT |
-| F-MACRUN: Mac app-runner role | P3 | Partial | 85 | Role aggregation Verified; Catalyst build fixer built, runs on a Mac (UAT) |
-| F-MAUIHEAD: MAUI head, logging & distribution | P4/P6 | Partial | 95 | MAUI Windows build+manifest+boot-persist done, visual render = UAT; **decommission (BRD-54/REQ-FN-034) + Serilog file logging (BRD-55/REQ-NFR-007) Verified 2026-07-09**; guide re-verified (BRD-45/FN-031); Catalyst build = Mac UAT |
+| F-MACRUN: Mac app-runner role | P3 | Partial | 88 | Role aggregation Verified; Catalyst fixer gate-detect budget fixed + re-verified 2026-07-11 (row settles with real gate evidence); FixPreview working-dir defect open; green-path build = Mac-with-Xcode UAT |
+| F-MAUIHEAD: MAUI head, logging & distribution | P4/P6 | Partial | 95 | MAUI Windows build+manifest+boot-persist done, visual render = UAT; **decommission (BRD-54/REQ-FN-034) + Serilog file logging (BRD-55/REQ-NFR-007) Verified**; guide Verified 2026-07-11 (BRD-45/FN-031 — Catalyst command NETSDK1100 csproj defect fixed, restores clean on macOS); Catalyst .app build = Mac-with-full-Xcode UAT |
 | F-AGENT: --check --json agent mode | P5 | Withdrawn | — | 2026-07-09 owner decision (went with the CLI head); was Done/Verified; decommission under REQ-FN-034 |
 
 **Legend:** **Done** = shipped & working (all its REQ Verified) · **Partial** = built, but some sub-features await UAT on an external host · **In progress** = actively being built · **Planned** = not started.

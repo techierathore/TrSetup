@@ -63,7 +63,7 @@ The head binds `localhost:5999` and best-effort opens the Mac browser (`open`). 
 
 ### Option B — native Catalyst `.app` (built on the Mac)
 
-Prerequisites on the Mac (install manually — since the CLI bootstrapper head is withdrawn, TrSetup no longer installs its own build toolchain): Xcode (full, licence accepted), .NET 10 SDK, the MAUI workload (`dotnet workload install maui`), and git.
+Prerequisites on the Mac (install manually — since the CLI bootstrapper head is withdrawn, TrSetup no longer installs its own build toolchain): **full Xcode** (licence accepted — the Command Line Tools alone are **not** enough: on a CLT-only Mac the build fails with `error : Could not find a valid Xcode app bundle at '/Library/Developer/CommandLineTools'. Please verify that 'xcode-select -p' points to your Xcode installation.` — i.e. the board's **mac.xcode** row must be green first), .NET 10 SDK, the MAUI workload (`dotnet workload install maui`), and git.
 
 ```bash
 git clone <TrSetup repo> && cd TrSetup
@@ -71,7 +71,7 @@ dotnet build src/TrSetup -f net10.0-maccatalyst -c Release
 open "src/TrSetup/bin/Release/net10.0-maccatalyst/maccatalyst-arm64/TrSetup.app"
 ```
 
-- The `net10.0-maccatalyst` TFM is appended to `TrSetup.csproj` **only on macOS** (an `IsOSPlatform('OSX')` guard on `<TargetFrameworks>`), so this command is a no-op / unknown-TFM on Windows — Catalyst genuinely can only be built on the Mac (the §1 toolchain rule).
+- On macOS the `IsOSPlatform('OSX')` guard in `TrSetup.csproj` **replaces** `<TargetFrameworks>` with `net10.0-maccatalyst` only, so this command restores and builds cleanly on the Mac — no `NETSDK1100`, no `EnableWindowsTargeting` flag needed (the windows TFM is never evaluated there). On Windows the condition is false and the list stays windows-only, so this command is a no-op / unknown-TFM there — Catalyst genuinely can only be built on the Mac (the §1 toolchain rule).
 - Output bundle: **`src/TrSetup/bin/Release/net10.0-maccatalyst/maccatalyst-arm64/TrSetup.app`** on Apple Silicon (an Intel Mac emits `maccatalyst-x64/` — the RID sub-folder follows the build host's architecture).
 - **Ad-hoc signed, no Apple certificate needed.** The csproj sets `<CodesignKey>-</CodesignKey>` + `<CreatePackage>false</CreatePackage>` under a maccatalyst-guarded `PropertyGroup`, so the build produces a runnable `.app` (not a `.pkg`) signed with codesign's ad-hoc identity — a personal, unnotarised build. First launch may hit Gatekeeper ("cannot verify the developer"); clear it once with `xattr -dr com.apple.quarantine "…/TrSetup.app"` or allow it via System Settings → Privacy & Security.
 - The window/board chrome carries the same AutomationIds as the Windows head (`TrSetupMainPage` page, `TrSetupBlazorWebView` web view) so the Appium `mac2` driver attaches by bundle id `com.techierathore.trsetup`.
@@ -83,6 +83,7 @@ Once running, TrSetup does what it was built for: the board checks the machine, 
 - **Windows "This program might not have installed correctly" popup** — suppressed by the embedded PCA-exemption manifest; see the note in §2. Only older builds (before the manifest) can show it; clear the cached entry with **"This program installed correctly"**.
 - **macOS "cannot verify the developer"** — the Catalyst `.app` is an ad-hoc-signed personal build under Gatekeeper quarantine. Fix: `xattr -dr com.apple.quarantine "…/TrSetup.app"`, or allow once via System Settings → Privacy & Security (see §3).
 - **`NETSDK1139` / unknown TFM `net10.0-maccatalyst` when building on Windows** — expected, not a bug: the Catalyst TFM only activates on macOS (the csproj guard in §3). Build the Catalyst head on the Mac.
+- **`Could not find a valid Xcode app bundle at '/Library/Developer/CommandLineTools'` when building Catalyst on the Mac** — the Mac has only the Command Line Tools; the Catalyst head needs **full Xcode** (§3 Option B prerequisites — the board's **mac.xcode** row). Install Xcode, accept the licence, and point the tools at it: `sudo xcode-select -s /Applications/Xcode.app`.
 
 ---
 *Created 2026-07-05 alongside the plan (now `docs/OldDocs/TrSetup-Plan.md` §6.5); expanded 2026-07-06 with the Option A/B framing; firmed up 2026-07-07 at P4 (REQ-FN-031/REQ-NFR-006). Rewritten 2026-07-09 as MAUI-desktop-only after the owner decision to withdraw the Blazor Server and CLI heads (code removal tracked by REQ-FN-034): the Option A/B framing (§1b), the copy-to-Mac cross-publish path (old Option B), the WSL run section, and the `scripts/publish.*` / portability section (§5) were removed with the heads they described. 2026-07-10: head project renamed to `src/TrSetup` / `TrSetup.exe` (REQ-FN-035) — all paths updated. Last updated: 2026-07-10.*

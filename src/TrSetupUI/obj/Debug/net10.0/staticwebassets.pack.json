@@ -1,15 +1,15 @@
 {
   "Files": [
     {
-      "Id": "/mnt/c/3AIGenCode/TrSetup/src/TrSetupUI/wwwroot/css/theme.css",
+      "Id": "/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/wwwroot/css/theme.css",
       "PackagePath": "staticwebassets/css/theme.css"
     },
     {
-      "Id": "/mnt/c/3AIGenCode/TrSetup/src/TrSetupUI/wwwroot/css/trsetup.css",
+      "Id": "/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/wwwroot/css/trsetup.css",
       "PackagePath": "staticwebassets/css/trsetup.css"
     },
     {
-      "Id": "/mnt/c/3AIGenCode/TrSetup/src/TrSetupUI/wwwroot/js/trsetup.js",
+      "Id": "/Volumes/MacD/MyCode/TrSetup/src/TrSetupUI/wwwroot/js/trsetup.js",
       "PackagePath": "staticwebassets/js/trsetup.js"
     },
     {

@@ -1,7 +1,10 @@
 @* Board dashboard body (REQ-UI-001): sticky header with role + app selectors and global
-   actions, then one card per check group with status counts, per-group "Fix all", and rows. *@
-@inject BoardState Board
-@inject NavigationManager Nav
+   actions, then one card per check group with status counts, per-group "Fix all", and rows.
+   Inherits BoardComponentBase so this component re-renders on BoardState.Changed ITSELF:
+   it has no parameters, so Blazor's renderer skips it when only the parent re-renders —
+   without its own subscription, detect results streaming in after its last self-render
+   were never painted and rows stayed "Pending" forever (REQ-UI-001 hang fix). *@
+@inherits BoardComponentBase
 
 <header class="ts-topbar">
     <SidebarTrigger />
