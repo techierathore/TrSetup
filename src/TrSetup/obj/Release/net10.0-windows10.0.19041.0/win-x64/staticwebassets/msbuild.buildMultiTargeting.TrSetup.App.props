@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\TrSetup.App.props" />
-</Project>

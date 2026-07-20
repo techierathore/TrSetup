@@ -105,4 +105,27 @@
         <ProjectReference Include="..\TrSetupUI\TrSetupUI.csproj" />
     </ItemGroup>
 
+    <!--
+      Mac Catalyst only: drop the Microsoft.AspNetCore.App shared-framework reference.
+
+      The TrBlazeUI 1.0.7 packages (and the Razor SDK) declare a frameworkReference to
+      Microsoft.AspNetCore.App under their net10.0 asset group. Microsoft ships NO AspNetCore runtime
+      pack for any maccatalyst-* RID, so resolving it fails the build with NETSDK1082. A MAUI Blazor
+      Hybrid head does not need the shared framework: BlazorWebView carries the Components /
+      Components.Web assemblies as ordinary NuGet assets for the platform TFMs, which is the whole
+      Blazor surface these components compile against. Removing the reference after package assets
+      are resolved (ProcessFrameworkReferences is what turns it into a runtime-pack download) leaves
+      the Windows target completely untouched — the condition scopes this to maccatalyst.
+    -->
+    <Target Name="TrSetupDropAspNetCoreFrameworkReferenceOnCatalyst"
+            BeforeTargets="AddTransitiveFrameworkReferences"
+            Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+        <ItemGroup>
+            <!-- Kill it at the source (the package-declared transitive reference) and defensively
+                 as a direct reference, before AddTransitiveFrameworkReferences promotes it. -->
+            <TransitiveFrameworkReference Remove="Microsoft.AspNetCore.App" />
+            <FrameworkReference Remove="Microsoft.AspNetCore.App" />
+        </ItemGroup>
+    </Target>
+
 </Project>
