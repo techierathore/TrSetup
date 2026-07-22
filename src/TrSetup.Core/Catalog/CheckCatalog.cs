@@ -141,7 +141,7 @@ public static class CheckCatalog
             var vContext = new ProfileCheckContext(vProfile.Name, aProcessRunner, aFix, aHttpProbe, aSystemProbe, aSettingsAccessor);
             var vProfileChecks = new ProfileCheckFactory().CreateChecks(vProfile, vContext);
             aChecks.AddRange(vProfileChecks);
-            AppendMacCatalystBuildCheck(aChecks, vProfile.Name, vProfileChecks, aProcessRunner, aFix);
+            AppendMacCatalystBuildCheck(aChecks, vProfile.Name, vProfileChecks, aProcessRunner, aFix, aSettingsAccessor);
         }
         catch (Exception vEx)
         {
@@ -162,13 +162,18 @@ public static class CheckCatalog
         string aAppName,
         IReadOnlyList<Check> aProfileChecks,
         IProcessRunner aProcessRunner,
-        CheckFixServices aFix)
+        CheckFixServices aFix,
+        Func<TrSetupSettings> aSettingsAccessor)
     {
         var vPrerequisites = aProfileChecks
             .Where(aCheck => (aCheck.Roles & MachineRole.AppRunnerMac) != MachineRole.None)
             .ToList();
         aChecks.Add(new MacCatalystBuildCheck(
-            aAppName, aProcessRunner, aToken => DetectRedIdsAsync(vPrerequisites, aToken), aFix));
+            aAppName,
+            aProcessRunner,
+            aToken => DetectRedIdsAsync(vPrerequisites, aToken),
+            aFix,
+            aSettings: aSettingsAccessor));
     }
 
     /// <summary>

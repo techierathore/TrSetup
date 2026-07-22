@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using TrSetup.Core.Catalog.Probing;
 using TrSetup.Core.Checks;
 
 namespace TrSetup.Core.Engine;
@@ -8,12 +9,44 @@ namespace TrSetup.Core.Engine;
 /// Owns the check catalog (REQ-FN-004): enumerates the checks applicable to
 /// (machine roles ∩ selected app profile), builds the observable board model every head
 /// renders, and runs detect sweeps in parallel with per-probe timeouts so a full sweep
-/// stays fast (REQ-NFR-001 groundwork: parallel probes, 5 s default timeout, streaming rows).
+/// stays fast (REQ-NFR-001 groundwork: parallel probes, <see cref="DefaultProbeTimeout"/>
+/// per check, streaming rows).
 /// </summary>
 public sealed class CheckEngine
 {
-    /// <summary>Default per-probe timeout applied during detect sweeps (REQ-NFR-001).</summary>
-    public static readonly TimeSpan DefaultProbeTimeout = TimeSpan.FromSeconds(5);
+    /// <summary>
+    /// Headroom the engine's budget keeps over the slowest inner probe a check can run.
+    /// </summary>
+    /// <remarks>
+    /// It only has to be large enough that a check which times out internally is still
+    /// scheduled, unwinds, and returns its result before the engine's own budget fires —
+    /// a few seconds is generous even on a loaded machine.
+    /// </remarks>
+    private static readonly TimeSpan ProbeTimeoutHeadroom = TimeSpan.FromSeconds(3);
+
+    /// <summary>
+    /// Default per-check budget applied during detect sweeps (REQ-NFR-001).
+    /// </summary>
+    /// <remarks>
+    /// DERIVED from <see cref="HttpStatusProbe.ProbeTimeout"/> on purpose, and it must stay
+    /// STRICTLY GREATER than it (REQ-FN-016, 2026-07-21).
+    /// <para>
+    /// Both values used to be a hard-coded 5 s. When a check's inner HTTP probe timed out,
+    /// the engine's budget expired at the same instant, so the <c>OperationCanceledException</c>
+    /// catch in <see cref="ProbeWithTimeoutAsync"/> won the race and replaced the check's own
+    /// diagnosis with the contentless "Probe timed out after 5 s." — throwing away the only
+    /// text that said WHICH address was probed. Live symptom: <c>mac.appium-launchagent</c>
+    /// never got to report "Appium not answering on http://{MacIp}:4723/status", hiding a
+    /// stale IP while the server answered fine on loopback.
+    /// </para>
+    /// <para>
+    /// Deriving it here means the two can never silently drift back into equality: raising the
+    /// probe timeout raises this budget with it. The budget is still a HARD bound — a check
+    /// that hangs and never honours its token is force-settled as an engine timeout, which is
+    /// the REQ-UI-001 hang fix and must not be regressed.
+    /// </para>
+    /// </remarks>
+    public static readonly TimeSpan DefaultProbeTimeout = HttpStatusProbe.ProbeTimeout + ProbeTimeoutHeadroom;
 
     private readonly IReadOnlyList<Check> objCatalog;
     private readonly ILogger<CheckEngine> objLogger;
@@ -73,7 +106,7 @@ public sealed class CheckEngine
     /// (raising <see cref="CheckBoard.RowChanged"/>) the moment it lands.
     /// </summary>
     /// <param name="aBoard">The board to detect (built by <see cref="BuildBoard"/>).</param>
-    /// <param name="aProbeTimeout">Per-probe timeout; defaults to <see cref="DefaultProbeTimeout"/> (5 s).</param>
+    /// <param name="aProbeTimeout">Per-probe timeout; defaults to <see cref="DefaultProbeTimeout"/>.</param>
     /// <param name="aProgress">Optional additional sink notified per completed row.</param>
     /// <param name="aCancellationToken">Cancels the whole sweep.</param>
     /// <returns>The same board instance, fully detected.</returns>
@@ -100,7 +133,7 @@ public sealed class CheckEngine
     /// </summary>
     /// <param name="aBoard">The board owning the row.</param>
     /// <param name="aRow">The row to re-check.</param>
-    /// <param name="aProbeTimeout">Per-probe timeout; defaults to <see cref="DefaultProbeTimeout"/> (5 s).</param>
+    /// <param name="aProbeTimeout">Per-probe timeout; defaults to <see cref="DefaultProbeTimeout"/>.</param>
     /// <param name="aCancellationToken">Cancels the probe.</param>
     /// <returns>The row's new result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="aBoard"/> or <paramref name="aRow"/> is null.</exception>

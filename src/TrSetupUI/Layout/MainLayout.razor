@@ -46,7 +46,12 @@
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton Href="/settings" Tooltip="Settings">
-                                <LucideIcon Name="sliders" Size="16" />
+                                @* "sliders" exists in lucide.json only under "aliases" (parent
+                                   "sliders-vertical"), and LucideIcon resolves names from the
+                                   "icons" map alone — so it rendered the literal fallback
+                                   "Icon not found: sliders", which also leaked into this link's
+                                   accessible name (REQ-NFR-003). Always use a real icon name. *@
+                                <LucideIcon Name="sliders-horizontal" Size="16" />
                                 <span data-testid="NavSettings">Settings</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

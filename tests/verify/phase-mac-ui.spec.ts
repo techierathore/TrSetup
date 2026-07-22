@@ -455,3 +455,55 @@ test('(render-sweep) console errors: zero console errors and zero failed asset r
     `failed requests seen: ${JSON.stringify(failedRequests, null, 2)}`
   ).toEqual([]);
 });
+
+// ---------------------------------------------------------------------------
+// (render-sweep) unresolved icons — no LucideIcon fallback text in the raw DOM
+// ---------------------------------------------------------------------------
+
+/**
+ * Every route the shell can reach. The sidebar (and therefore every icon in it)
+ * renders on all of them, but page-local icons only appear on their own screen —
+ * so the guard has to visit each one.
+ */
+const ICON_SWEEP_ROUTES = ['/', '/fix-run', '/report', '/setup', '/settings'] as const;
+
+/**
+ * Regression guard for REQ-NFR-003 (2026-07-21).
+ *
+ * When LucideIcon cannot resolve a name it does NOT throw and does NOT log a console
+ * error — it renders the literal text "Icon not found: <name>". That text sits in an
+ * SVG-adjacent fallback node, so it is absent from innerText too, and it silently
+ * corrupts the accessible name of whatever control contains it (the Settings nav link
+ * read as "Icon not found: sliders Settings" in the XCUITest a11y tree). Six verify
+ * runs missed it for exactly that reason.
+ *
+ * The assertion MUST run against page.content() (raw serialised DOM). Asserting on
+ * innerText or on console output would reproduce the original blind spot.
+ */
+test('(render-sweep) unresolved icons: no "Icon not found" fallback text in the raw DOM on any screen', async ({
+  page,
+}) => {
+  const offenders: string[] = [];
+
+  // Start from the board so the detect sweep has run and status icons are rendered.
+  await waitForBoard(page);
+
+  for (const route of ICON_SWEEP_ROUTES) {
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('[data-testid="NavSettings"]')).toBeVisible({
+      timeout: POLL_TIMEOUT,
+    });
+    // Let Blazor finish its first interactive render before serialising the DOM.
+    await page.waitForTimeout(1000);
+
+    const html = await page.content();
+    for (const match of html.matchAll(/Icon not found:\s*([^<"]*)/g)) {
+      offenders.push(`${route} → "${match[0].trim()}"`);
+    }
+  }
+
+  expect(
+    offenders,
+    `unresolved LucideIcon names found in raw DOM: ${JSON.stringify(offenders, null, 2)}`
+  ).toEqual([]);
+});

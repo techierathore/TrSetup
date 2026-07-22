@@ -25,6 +25,45 @@ One shipping app: **`TrSetup`** (MAUI Blazor Hybrid — Windows unpackaged exe +
 
 ---
 
+## 1b. Installing a downloaded release — first-launch trust (REQ-FN-040 / BRD-61)
+
+> **Read this first if you downloaded `TrSetup-<version>-macOS.dmg` (or the Windows exe) from the repo rather than building it yourself.**
+
+TrSetup releases are currently **unsigned**: the Mac build is ad-hoc signed (`Signature=adhoc`, no Apple Team ID) and **not notarized**, because notarization requires a paid Apple Developer account that this project does not yet have (tracked as **REQ-FN-038 / BRD-59**, status *Blocked*).
+
+**What that means in practice:** macOS marks anything you download with a `com.apple.quarantine` flag, and Gatekeeper refuses to run unsigned quarantined apps. Verified on macOS 26.5 (2026-07-20): a downloaded `.dmg`, dragged to Applications, gives `spctl` verdict **`rejected`** and the app will not open. You are not doing anything wrong and the download is not corrupt.
+
+### macOS — one-time trust step
+
+Install normally first: open the `.dmg`, drag **TrSetup** onto the **Applications** shortcut. Then do **either** of these once:
+
+**Option A — right-click (no terminal):**
+1. Open **Applications** in Finder.
+2. **Right-click** (or Control-click) **TrSetup** → **Open**.
+3. Click **Open** in the warning dialog.
+
+macOS remembers the choice; afterwards it launches normally from the Dock or Launchpad.
+
+**Option B — terminal, one line:**
+```bash
+xattr -dr com.apple.quarantine /Applications/TrSetup.app
+```
+Then open TrSetup normally. *(Verified 2026-07-20: clears the flag and the app launches.)*
+
+> Double-clicking the app **before** doing one of the above just shows the block. Do the trust step, then open it.
+
+### Windows — SmartScreen
+
+The Windows build is likewise unsigned, so **Microsoft Defender SmartScreen** shows *"Windows protected your PC"*:
+1. Click **More info**.
+2. Click **Run anyway**.
+
+### When this section goes away
+
+Once REQ-FN-038 is closed (Developer ID certificate + notarization + stapling on Mac, and code-signing on Windows), downloads will open with no warning and no manual step, and this section will be replaced by a plain "download and run".
+
+---
+
 ## 2. Run TrSetup on Windows
 
 ### 2.1 Before you run — prerequisites
@@ -202,7 +241,10 @@ The **Settings screen shows the exact path on your machine** — that is always 
 3. Edit any of:
    - **Machine roles** — tick/untick Agent host (WSL) / Device host (Windows) / Device host (Mac) / App runner (Mac), plus the "I develop natively" variant.
    - **Selected application** — AppStudio / TrStudio / none (see [§5.2](#52-switch-the-application-appstudio--trstudio--framework-only)).
-   - **Endpoints** — today just the **LAN Mac IP** used by the cross-machine Bridges checks (validated in-app as IP/hostname).
+   - **Endpoints** —
+     - **Mac device-host IP** — the LAN Mac address used by the cross-machine Bridges checks (validated in-app as IP/hostname).
+     - **App Manager API URL** — where *this* machine reaches App Manager (validated as an absolute `http(s)://` URL). Leave blank to use the profile default `https://localhost:5101/`, which is correct only when App Manager runs on the same box. **On a two-machine setup — a Mac app-runner plus a Windows device-host — the Mac must set this**, e.g. `https://192.168.1.14:5101/health`, or the "App Manager API reachable" row can never go green and the Catalyst build fixer stays gated. Point it at a URL that answers 2xx (App Manager serves `/health`); a URL answering 404 reads as *reachable but not healthy* (amber).
+       - **Trust a self-signed certificate for this endpoint** — an opt-in switch, **off by default**. A LAN App Manager usually serves the ASP.NET development certificate (`CN=localhost`, self-signed), which fails validation when you reach it by IP. Turn this on only for a service on your own LAN; TrSetup then skips certificate validation for *that endpoint alone* and says so in the row's evidence. Every other probe keeps full validation.
 4. Review the read-only **profile details** panel — every requirement row tagged *built-in* vs *app-repo override*.
 5. Click **Save** → persists to the JSON file and **re-scopes the board immediately, no restart needed**.
 
@@ -247,7 +289,8 @@ Copy-Item docs\samples\appstudio-windows-device-host.json $env:APPDATA\TrSetup\s
 Field reference (full detail in `docs/samples/README.md`):
 - **`Roles`** — comma-separated: `AgentHostWsl`, `DeviceHostWindows`, `DeviceHostMac`, `AppRunnerMac`, optional `NativeDev`. Only your roles' checks run; the rest show `○ N/A` (by design).
 - **`SelectedApp`** — `"AppStudio"` / `"TrStudio"` / `null`.
-- **`Endpoints`** — address-only (today `"MacIp"`). **Secrets are never stored here.**
+- **`Endpoints`** — addresses/URLs only: `"MacIp"` (the LAN Mac's address) and `"AppManagerUrl"` (this machine's App Manager URL — overrides the profile's `https://localhost:5101/` default). **Secrets are never stored here.**
+- **`TrustedSelfSignedEndpoints`** — a list of endpoint keys whose self-signed TLS certificate you explicitly accept, e.g. `["AppManagerUrl"]`. Empty by default; it only ever applies to an endpoint you configured yourself.
 
 Everything seeded this way remains editable in-app afterwards ([§5.1](#51-in-app-via-the-settings-screen-the-normal-way)).
 

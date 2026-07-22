@@ -16,6 +16,9 @@
 <body>
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
+    @* Mirrors data-testid -> aria-placeholder so XCUITest can locate controls (REQ-FN-030).
+       Inert in a browser; loaded here too so both heads serve identical markup. *@
+    <script src="_content/TrSetupUI/js/automation-ids.js"></script>
 </body>
 
 </html>

@@ -39,7 +39,7 @@
       "title": "Xcode (Catalyst build prerequisite)",
       "roles": ["AppRunnerMac"],
       "severity": "Required",
-      "params": { "command": "xcodebuild" }
+      "params": { "command": "xcodebuild", "versionArgs": "-version" }
     },
     {
       "type": "nuget-feed",
@@ -58,7 +58,10 @@
       "title": "App Manager API reachable",
       "roles": ["DeviceHostWindows", "AppRunnerMac"],
       "severity": "Required",
-      "params": { "url": "https://localhost:5101/" }
+      "params": {
+        "url": "https://localhost:5101/",
+        "urlSettingKey": "AppManagerUrl"
+      }
     },
     {
       "type": "env-secret",

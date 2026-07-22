@@ -89,6 +89,13 @@ public sealed class BoardState
     /// </summary>
     public IReadOnlyDictionary<string, string> Endpoints => objSettings.Endpoints;
 
+    /// <summary>
+    /// The endpoint keys whose self-signed TLS certificate the user has explicitly opted to trust
+    /// (REQ-FN-028). Read-only view so the Settings editor can pre-tick its per-endpoint trust
+    /// checkboxes; edits persist through <see cref="SaveSettingsAsync"/>.
+    /// </summary>
+    public IReadOnlyCollection<string> TrustedSelfSignedEndpoints => objSettings.TrustedSelfSignedEndpoints;
+
     /// <summary>Whether a full detect sweep is currently running.</summary>
     public bool IsSweeping { get; private set; }
 
@@ -207,16 +214,28 @@ public sealed class BoardState
     /// <param name="aRoles">The chosen machine roles (including the native-dev variant flag).</param>
     /// <param name="aSelectedApp">The chosen app profile, or <c>null</c> for framework-only.</param>
     /// <param name="aEndpoints">The endpoint values to persist by name (empty entries should be omitted by the caller).</param>
+    /// <param name="aTrustedSelfSignedEndpoints">
+    /// The endpoint keys the user explicitly opted to trust an untrusted TLS certificate for
+    /// (REQ-FN-028), or <c>null</c> to leave the stored set untouched.
+    /// </param>
     /// <returns>A task completing when settings are saved and the re-scope sweep started.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="aEndpoints"/> is null.</exception>
     /// <exception cref="IOException">Propagated when the settings file cannot be written.</exception>
     public async Task SaveSettingsAsync(
-        MachineRole aRoles, string? aSelectedApp, IReadOnlyDictionary<string, string> aEndpoints)
+        MachineRole aRoles,
+        string? aSelectedApp,
+        IReadOnlyDictionary<string, string> aEndpoints,
+        IReadOnlyCollection<string>? aTrustedSelfSignedEndpoints = null)
     {
         ArgumentNullException.ThrowIfNull(aEndpoints);
         objSettings.Roles = aRoles;
         objSettings.SelectedApp = aSelectedApp;
         objSettings.Endpoints = new Dictionary<string, string>(aEndpoints, StringComparer.OrdinalIgnoreCase);
+        if (aTrustedSelfSignedEndpoints is not null)
+        {
+            objSettings.TrustedSelfSignedEndpoints =
+                new HashSet<string>(aTrustedSelfSignedEndpoints, StringComparer.OrdinalIgnoreCase);
+        }
         await objSettingsStore.SaveAsync(objSettings).ConfigureAwait(false);
         IsFirstRun = false;
         objIsInitialized = true;

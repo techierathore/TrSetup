@@ -13,6 +13,9 @@ public sealed class HttpStatusProbe : IHttpStatusProbe
     private const int MaxBodyLength = 300;
 
     private readonly HttpClient objHttpClient;
+    private readonly HttpMessageHandler? objMessageHandler;
+    private readonly Lock objTrustingLock = new();
+    private HttpClient? objTrustingClient;
 
     /// <summary>
     /// Creates the probe.
@@ -23,16 +26,65 @@ public sealed class HttpStatusProbe : IHttpStatusProbe
     /// </param>
     public HttpStatusProbe(HttpMessageHandler? aMessageHandler = null)
     {
+        objMessageHandler = aMessageHandler;
         objHttpClient = aMessageHandler is null ? new HttpClient() : new HttpClient(aMessageHandler);
         objHttpClient.Timeout = ProbeTimeout;
     }
 
     /// <inheritdoc />
-    public async Task<HttpProbeResult> GetAsync(string aUrl, CancellationToken aCancellationToken = default)
+    public Task<HttpProbeResult> GetAsync(string aUrl, CancellationToken aCancellationToken = default)
+        => GetAsync(aUrl, objHttpClient, aCancellationToken);
+
+    /// <inheritdoc />
+    public Task<HttpProbeResult> GetAsync(
+        string aUrl,
+        bool aAllowUntrustedCertificate,
+        CancellationToken aCancellationToken = default)
+        => GetAsync(
+            aUrl,
+            aAllowUntrustedCertificate ? TrustingClient() : objHttpClient,
+            aCancellationToken);
+
+    /// <summary>
+    /// The lazily built client that accepts ANY server certificate. Deliberately separate from the
+    /// default client so relaxed TLS can never leak into an ordinary probe: a caller has to ask for
+    /// it explicitly, and only an endpoint the user configured and opted into ever does
+    /// (REQ-FN-028, <see cref="Settings.TrSetupSettings.TrustedSelfSignedEndpoints"/>).
+    /// </summary>
+    /// <returns>The certificate-trusting client for this probe instance.</returns>
+    private HttpClient TrustingClient()
+    {
+        lock (objTrustingLock)
+        {
+            if (objTrustingClient is not null)
+            {
+                return objTrustingClient;
+            }
+
+            // A faked handler already bypasses the transport, so honour it rather than building a
+            // real socket handler underneath a unit test.
+            HttpMessageHandler vHandler = objMessageHandler ?? new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            };
+
+            objTrustingClient = new HttpClient(vHandler, disposeHandler: objMessageHandler is null)
+            {
+                Timeout = ProbeTimeout
+            };
+            return objTrustingClient;
+        }
+    }
+
+    private static async Task<HttpProbeResult> GetAsync(
+        string aUrl,
+        HttpClient aClient,
+        CancellationToken aCancellationToken)
     {
         try
         {
-            using var vResponse = await objHttpClient
+            using var vResponse = await aClient
                 .GetAsync(aUrl, aCancellationToken)
                 .ConfigureAwait(false);
             var vBody = await vResponse.Content.ReadAsStringAsync(aCancellationToken).ConfigureAwait(false);

@@ -74,6 +74,34 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     /// <summary>
+    /// Scenario (REQ-FN-028): save a per-machine App Manager endpoint override plus the explicit
+    /// opt-in to trust its self-signed certificate, then reload through a fresh store — the same
+    /// thing a restart does.
+    /// Expect: BOTH survive the round-trip, so the Mac app-runner keeps pointing at the LAN App
+    /// Manager instead of reverting to the profile's localhost default.
+    /// </summary>
+    [Fact]
+    public async Task EndpointOverrideAndTlsTrustOptInSurviveARestart()
+    {
+        var vSettings = new TrSetupSettings
+        {
+            Roles = MachineRole.AppRunnerMac,
+            SelectedApp = "AppStudio",
+            Endpoints = { ["AppManagerUrl"] = "https://192.168.1.14:5101/" },
+            TrustedSelfSignedEndpoints = { "AppManagerUrl" }
+        };
+        await new JsonSettingsStore(SettingsPath).SaveAsync(vSettings);
+
+        var vReloaded = (await new JsonSettingsStore(SettingsPath).LoadAsync()).Settings;
+
+        Assert.Equal("https://192.168.1.14:5101/", vReloaded.Endpoints["AppManagerUrl"]);
+        Assert.Contains("AppManagerUrl", vReloaded.TrustedSelfSignedEndpoints);
+        // The set must stay case-insensitive after deserialization or the trust opt-in silently
+        // stops matching the endpoint key.
+        Assert.Contains("appmanagerurl", vReloaded.TrustedSelfSignedEndpoints);
+    }
+
+    /// <summary>
     /// Scenario: save into a directory that does not exist yet.
     /// Expect: the store creates the directory and the file lands on disk.
     /// </summary>

@@ -43,6 +43,24 @@ public sealed class BuiltInProfilesTests
     }
 
     /// <summary>
+    /// Scenario: the AppStudio Xcode row probes the tool for its version.
+    /// Expect: it passes <c>-version</c>, NOT the handler's <c>--version</c> default. xcodebuild is
+    /// an Apple tool that rejects the GNU double-dash form with exit 64 (EX_USAGE), which the
+    /// cli-tool handler reports as "not found or failed" — so a perfectly good full-Xcode install
+    /// detected RED and gated the whole Catalyst build path (observed live 2026-07-20, Xcode 26.6).
+    /// </summary>
+    [Fact]
+    public void AppStudioXcodeRowUsesAppleSingleDashVersionFlag()
+    {
+        var vProfile = LoadProfile("AppStudio");
+
+        var vXcode = vProfile!.Requirements.Single(aReq => aReq.Id == "appstudio.xcode");
+
+        Assert.Equal("xcodebuild", vXcode.Param("command"));
+        Assert.Equal("-version", vXcode.Param("versionArgs"));
+    }
+
+    /// <summary>
     /// Scenario: the production registry is built by auto-discovering embedded built-in JSON.
     /// Expect: it resolves a TrStudio profile whose nine requirements match the BRD rows exactly
     /// (id, type and role tags, incl. the Win-only feed and the Mac-runner-only disk floor), with no

@@ -1,0 +1,195 @@
+# TrSetup — distributable artifact pipeline (REQ-FN-036/037/039, BRD-57/58/60).
+#
+# Produces the two "download one file and run it on a fresh machine" artifacts:
+#   macOS   → TrSetup-<version>-macOS.dmg          (Catalyst .app, drag-to-Applications)
+#   Windows → TrSetup-<version>-Windows-<rid>.zip  (self-contained: no .NET, no WindowsAppSDK needed)
+#
+# NO APPLE DEVELOPER ACCOUNT REQUIRED (owner decision 2026-07-20, REQ-FN-038 parked). The Mac build
+# uses codesign's ad-hoc identity (CodesignKey '-' in TrSetup.csproj), which needs no certificate and
+# no secrets. The trade-off is real and deliberate: downloads are Gatekeeper-quarantined, so users
+# must do the one-time trust step in docs/TrSetup-UsageGuide.md §1b. That step is printed into the
+# job summary and the release notes so nobody hits a blocked app with no explanation.
+#
+# ── REQUIRED REPOSITORY SECRET ────────────────────────────────────────────────────────────────────
+#   GH_PACKAGES_PAT — a PAT with `read:packages` for the techierathore GitHub Packages feed.
+#                     TrSetupUI depends on TrBlazeUI 1.0.7, which is NOT on nuget.org, so restore
+#                     fails without it. Settings → Secrets and variables → Actions → New secret.
+#                     (The default GITHUB_TOKEN cannot read packages from another owner's feed.)
+
+name: Build artifacts
+
+on:
+  workflow_dispatch:          # manual "Run workflow" button
+  push:
+    tags: ['v*']              # tagging v1.2.3 builds and publishes a release
+  pull_request:
+    paths:                    # keep PR feedback fast — only when packaging inputs change
+      - 'src/**'
+      - 'build/**'
+      - '.github/workflows/build-artifacts.yml'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  FEED_URL: 'https://nuget.pkg.github.com/techierathore/index.json'
+
+jobs:
+  # ── macOS: Catalyst .app → .dmg ────────────────────────────────────────────────────────────────
+  macos:
+    name: macOS (.dmg)
+    runs-on: macos-15         # pinned, not -latest: the image ships the Xcode that Catalyst needs
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode in use
+        run: xcodebuild -version   # NB: -version, single dash. Apple tools reject --version (REQ-FN-022)
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # The private feed must be registered BEFORE restore or TrBlazeUI cannot resolve.
+      # --store-password-in-clear-text is required on non-Windows agents (no DPAPI available).
+      - name: Add TrBlazeUI package feed
+        run: |
+          dotnet nuget add source "$FEED_URL" \
+            --name TrBlazeUI \
+            --username techierathore \
+            --password "${{ secrets.GH_PACKAGES_PAT }}" \
+            --store-password-in-clear-text
+
+      - name: Install MAUI Catalyst workload
+        run: dotnet workload install maui-maccatalyst
+
+      - name: Restore
+        run: dotnet restore src/TrSetup/TrSetup.csproj
+
+      - name: Unit tests
+        run: dotnet test tests/unit/TrSetup.Core.Tests -c Release
+
+      - name: Build Catalyst .app
+        run: dotnet build src/TrSetup/TrSetup.csproj -f net10.0-maccatalyst -c Release
+
+      - name: Package .dmg
+        run: ./build/package-mac.sh
+
+      # Fail loudly rather than shipping a .dmg that cannot start on a machine with no .NET.
+      # BRD-57's whole point is a non-circular bootstrap, so assert the runtime is really bundled.
+      - name: Assert the .app is self-contained
+        run: |
+          APP="src/TrSetup/bin/Release/net10.0-maccatalyst/TrSetup.app"
+          COUNT=$(ls "$APP/Contents/MonoBundle/" | grep -c '^System\.' || true)
+          echo "System.* assemblies bundled: $COUNT"
+          if [ "$COUNT" -lt 10 ]; then
+            echo "::error::.app is not self-contained — it would fail on a machine without .NET (BRD-57)."
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TrSetup-macOS-dmg
+          path: artifacts/*.dmg
+          if-no-files-found: error
+
+      - name: Job summary
+        run: |
+          {
+            echo "### macOS artifact"
+            echo ''
+            ls -lh artifacts/*.dmg | awk '{print "- `" $NF "` (" $5 ")"}'
+            echo ''
+            echo '**Unsigned build** — ad-hoc signed, not notarized (REQ-FN-038 parked).'
+            echo 'First launch: right-click the app → **Open**, or:'
+            echo '```'
+            echo 'xattr -dr com.apple.quarantine /Applications/TrSetup.app'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Windows: self-contained publish → zip ──────────────────────────────────────────────────────
+  windows:
+    name: Windows (self-contained zip)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false        # an arm64 failure must not hide a good x64 artifact
+      matrix:
+        rid: [win-x64, win-arm64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Add TrBlazeUI package feed
+        run: |
+          dotnet nuget add source "$env:FEED_URL" `
+            --name TrBlazeUI `
+            --username techierathore `
+            --password "${{ secrets.GH_PACKAGES_PAT }}" `
+            --store-password-in-clear-text
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Unit tests
+        run: dotnet test tests/unit/TrSetup.Core.Tests -c Release
+
+      # package-windows.ps1 publishes self-contained and then HARD-ASSERTS that the .NET runtime,
+      # the Windows App SDK and WinUI are all beside the exe — a framework-dependent artifact fails
+      # the build rather than shipping and breaking on a clean machine.
+      - name: Publish + package
+        run: ./build/package-windows.ps1 -Rid ${{ matrix.rid }}
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TrSetup-Windows-${{ matrix.rid }}
+          path: artifacts/*.zip
+          if-no-files-found: error
+
+      - name: Job summary
+        shell: pwsh
+        run: |
+          "### Windows artifact (${{ matrix.rid }})`n" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          Get-ChildItem artifacts/*.zip | ForEach-Object {
+            "- ``$($_.Name)`` ($([math]::Round($_.Length/1MB,1)) MB)" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          }
+          "`n**Unsigned build** — SmartScreen will warn: click **More info** then **Run anyway**." | Out-File -Append $env:GITHUB_STEP_SUMMARY
+
+  # ── Release: only on a v* tag ──────────────────────────────────────────────────────────────────
+  release:
+    name: Publish release
+    needs: [macos, windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write         # required to create the release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          # The trust steps go in the release body deliberately: an unsigned download that is
+          # blocked with no explanation is indistinguishable from a broken one (REQ-FN-040).
+          body: |
+            ## Install
+
+            **macOS** — download the `.dmg`, open it, drag **TrSetup** to **Applications**.
+
+            The build is unsigned (no Apple Developer account), so macOS blocks it on first launch.
+            One time only, do either:
+            - Right-click **TrSetup** in Applications → **Open** → **Open**, or
+            - `xattr -dr com.apple.quarantine /Applications/TrSetup.app`
+
+            **Windows** — download the `.zip` for your architecture, extract anywhere, run `TrSetup.exe`.
+
+            SmartScreen will warn on first run: **More info** → **Run anyway**.
+
+            Both artifacts are self-contained: no .NET, MAUI workload, or Windows App SDK required.
+
+            Full details: `docs/TrSetup-UsageGuide.md` §1b.

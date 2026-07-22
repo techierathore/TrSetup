@@ -3,10 +3,27 @@
 <plist version="1.0">
     <!-- See https://aka.ms/maui-publish-app-store#add-entitlements for more information about adding entitlements.-->
     <dict>
-        <!-- App Sandbox must be enabled to distribute a MacCatalyst app through the Mac App Store. -->
+        <!--
+            App Sandbox is DELIBERATELY DISABLED (REQ-FN-016 / REQ-FN-028).
+
+            The sandbox is only required to distribute through the Mac App Store. TrSetup is a
+            developer environment doctor distributed directly, and its entire purpose is to inspect
+            and repair the HOST system: shell `dotnet` / `tar` / installers, write the managed PATH
+            block into ~/.zprofile, and install tools under ~/.trsetup.
+
+            With the sandbox ON, macOS silently redirects the app's writes into
+            ~/Library/Containers/com.techierathore.trsetup/Data/ and blocks execution of downloaded
+            binaries. Observed 2026-07-20: clicking Fix on the .NET SDK row downloaded
+            dotnet-install.sh into the CONTAINER and nothing ever reached the system, and the app
+            kept its own private settings.json divorced from ~/.trsetup/settings.json. Every fixer
+            appeared to do nothing. A sandboxed system-repair tool is a contradiction.
+
+            If a Mac App Store build is ever wanted it needs a different target/entitlements set —
+            the fixers cannot work under the sandbox regardless.
+        -->
         <key>com.apple.security.app-sandbox</key>
-        <true/>
-        <!-- When App Sandbox is enabled, this value is required to open outgoing network connections. -->
+        <false/>
+        <!-- Outgoing connections: installer downloads, endpoint probes, NuGet feed checks. -->
         <key>com.apple.security.network.client</key>
         <true/>
     </dict>

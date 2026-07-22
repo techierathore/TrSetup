@@ -50,6 +50,41 @@
     </PropertyGroup>
 
     <!--
+      Windows SELF-CONTAINED deployment (REQ-FN-039 / BRD-60) — closes the bootstrap paradox.
+
+      TrSetup's job is to install the .NET SDK/runtime, so TrSetup itself must never require a
+      pre-installed .NET. Before this block the unpackaged Windows exe was framework-dependent: it
+      needed BOTH the .NET Desktop Runtime AND the Windows App SDK runtime already present — the
+      exact machine state TrSetup exists to repair. On a genuinely fresh Windows box it therefore
+      could not start (the likely cause of the owner's 2026-07-20 "the exe build failed to install").
+
+        SelfContained             — bundles the .NET runtime into the output.
+        WindowsAppSDKSelfContained— bundles the Windows App SDK / WinUI 3 runtime (required for an
+                                    unpackaged app: WindowsPackageType=None has no MSIX framework
+                                    dependency to resolve it from).
+        RuntimeIdentifier(s)      — self-contained REQUIRES a RID. RuntimeIdentifiers lists what may
+                                    be restored; RuntimeIdentifier defaults to win-x64 ONLY when the
+                                    caller did not pass one, so a plain `dotnet build` still works
+                                    and `-r win-arm64` still overrides cleanly.
+
+      NOT enabled deliberately:
+        PublishSingleFile — WinUI 3 / Windows App SDK does not reliably support single-file packing
+                            (native assets must sit beside the exe). Ship the self-contained FOLDER
+                            inside an installer or zip instead — see build/package-windows.ps1.
+        PublishTrimmed    — trimming is unsupported for MAUI/WinUI and silently breaks XAML/reflection.
+
+      Scoped to the windows target platform only. On macOS the TargetFrameworks list above is
+      REPLACED with net10.0-maccatalyst, so this block never evaluates there and the Mac build is
+      completely untouched.
+    -->
+    <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+        <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
+        <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    </PropertyGroup>
+
+    <!--
       Mac Catalyst ad-hoc signing (BRD-44 / REQ-FN-030) — a personal, locally-built, unnotarised .app.
       CodesignKey '-' is codesign's ad-hoc identity (same as `codesign -s -`), so the build needs no
       Apple Developer certificate; CreatePackage=false emits a runnable `.app` bundle rather than a
@@ -62,6 +97,64 @@
         <CodesignKey>-</CodesignKey>
         <CreatePackage>false</CreatePackage>
     </PropertyGroup>
+
+    <!--
+      ============================================================================================
+      AUTOMATION-ID MIRROR GATE — Debug only, deliberately (REQ-FN-030 follow-up, 2026-07-21).
+      ============================================================================================
+      WHY THIS IS GATED (a decision, not an accident):
+
+      _content/TrSetupUI/js/automation-ids.js mirrors every `data-testid` onto `aria-placeholder`,
+      because that is the ONLY attribute empirically proven to surface into the XCUITest
+      accessibility tree (as `value`) for Blazor content inside the Catalyst WKWebView — it took
+      native Appium/mac2 automation from 0 to 48 locatable controls. But `aria-placeholder` is
+      ARIA-legal ONLY on textbox / searchbox / combobox / spinbutton roles. Stamping it on the
+      buttons and links the mirror actually targets is an ARIA-spec violation, and we have NOT
+      tested whether VoiceOver announces the machine id to a real user. Shipping that trades a
+      real accessibility risk for a testability benefit end users never receive.
+
+      So DEBUG keeps the mirror and RELEASE ships clean ARIA. Nothing is lost: agent verification
+      drives the DEBUG Catalyst head — that is the registered recipe in .tfcore/core-config.yaml
+      (`launch: open -a src/TrSetup/bin/Debug/.../TrSetup.app`), chosen because the Release bundle
+      has its own separate open defect.
+
+      HOW THE GATE WORKS — two halves, because a WKWebView cannot 404 gracefully:
+        1. Host document. wwwroot/index.html is the shipping document and never references the
+           mirror; wwwroot/index.debug.html is the same document plus that one script tag.
+           MainPage.xaml.cs repoints BlazorWebView.HostPage at the debug document under
+           `#if DEBUG`. Because the tag only exists in the document that is only ever loaded when
+           the script is also present, neither configuration can request a missing asset.
+        2. Payload. The ItemGroup + target below keep index.debug.html and the mirror itself out
+           of Release output altogether, so no dead automation code ships.
+
+      NOT gated: src/TrSetup.Web (the headless smoke host). It is test-only and never
+      distributed, and Playwright/verification depends on the mirror being present there — so the
+      RCL keeps publishing _content/TrSetupUI/js/automation-ids.js unconditionally.
+    -->
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+        <!-- Drop the Debug host document from the shipping bundle. -->
+        <Content Remove="wwwroot\index.debug.html" />
+    </ItemGroup>
+
+    <!--
+      Release half of the payload gate. The mirror is an RCL static web asset, so it flows into
+      this head automatically; strip it at the last hop before packaging. ConvertStaticWebAssets-
+      ToMauiAssets (Microsoft.AspNetCore.Components.WebView.Maui.targets) is what turns the
+      resolved static web assets into the MauiAsset items that become Contents/Resources/wwwroot,
+      and it is the ONLY safe place to filter: earlier hooks are undone when the publish-side
+      static web assets are re-resolved. Match on TargetPath, NOT Identity: the pre-compressed
+      .br/.gz siblings have a content-hashed Identity under TrSetupUI/obj that does not contain
+      the word "automation-ids", so an Identity match silently leaves them behind (observed).
+      Debug is untouched, and the TrSetupUI project itself is untouched.
+    -->
+    <Target Name="TrSetupDropAutomationIdsMirrorOnRelease"
+            Condition="'$(Configuration)' != 'Debug'"
+            AfterTargets="ConvertStaticWebAssetsToMauiAssets">
+        <ItemGroup>
+            <MauiAsset Remove="@(MauiAsset)"
+                       Condition="$([System.String]::Copy('%(MauiAsset.TargetPath)').Contains('automation-ids'))" />
+        </ItemGroup>
+    </Target>
 
     <ItemGroup>
         <!-- App Icon -->

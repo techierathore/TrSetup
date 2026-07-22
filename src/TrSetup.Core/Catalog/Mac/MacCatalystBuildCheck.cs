@@ -3,6 +3,7 @@ using TrSetup.Core.Checks;
 using TrSetup.Core.Fixing;
 using TrSetup.Core.Processes;
 using TrSetup.Core.Profiles;
+using TrSetup.Core.Settings;
 
 namespace TrSetup.Core.Catalog.Mac;
 
@@ -24,8 +25,16 @@ public sealed class MacCatalystBuildCheck : MacCheckBase
     private readonly string[] objApps;
     private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> objPrerequisiteRedIds;
     private readonly Func<bool> objIsMacOs;
-    private readonly Func<string> objWorkingDirectory;
+    private readonly Func<RepoRootResolution> objRepoRoot;
     private readonly Func<string?> objAppBundlePath;
+
+    /// <summary>
+    /// The outcome of resolving the app's source-repo root: either a validated absolute
+    /// <paramref name="Path"/>, or <c>null</c> with a human-readable <paramref name="Problem"/>.
+    /// </summary>
+    /// <param name="Path">The validated repo root, or <c>null</c> when unusable.</param>
+    /// <param name="Problem">Why it is unusable; empty when <paramref name="Path"/> is set.</param>
+    private readonly record struct RepoRootResolution(string? Path, string Problem);
 
     /// <summary>
     /// Creates the check.
@@ -35,8 +44,15 @@ public sealed class MacCatalystBuildCheck : MacCheckBase
     /// <param name="aPrerequisiteRedIds">Reports the ids of the app's still-red prerequisites (empty = all green — the gate that enables the fixer).</param>
     /// <param name="aFix">Fixer frameworks; when null the check is detect-only (no Fix button).</param>
     /// <param name="aIsMacOs">macOS detection override for tests; defaults to <see cref="OperatingSystem.IsMacOS"/>.</param>
-    /// <param name="aWorkingDirectory">Build working directory override; defaults to <see cref="ProfilePaths.RepoRoot"/>.</param>
+    /// <param name="aWorkingDirectory">
+    /// Explicit build working directory override (tests / callers that already know the repo root).
+    /// When null the root is resolved and VALIDATED from <paramref name="aSettings"/> — see
+    /// <see cref="ProfilePaths.ResolveAppRepoRoot"/>. It deliberately no longer falls back to the
+    /// process working directory (REQ-FN-028 defect: a published app resolved its "repo" to its own
+    /// output folder).
+    /// </param>
     /// <param name="aAppBundlePath">Produced <c>.app</c> path accessor for detect/install; defaults to unknown.</param>
+    /// <param name="aSettings">Live settings accessor supplying the configured app→repo-path map.</param>
     /// <exception cref="ArgumentNullException">Thrown when a required dependency is null.</exception>
     public MacCatalystBuildCheck(
         string aAppName,
@@ -45,15 +61,31 @@ public sealed class MacCatalystBuildCheck : MacCheckBase
         CheckFixServices? aFix = null,
         Func<bool>? aIsMacOs = null,
         Func<string>? aWorkingDirectory = null,
-        Func<string?>? aAppBundlePath = null)
+        Func<string?>? aAppBundlePath = null,
+        Func<TrSetupSettings>? aSettings = null)
         : base(aProcessRunner, aFix)
     {
         objAppName = aAppName ?? throw new ArgumentNullException(nameof(aAppName));
         objApps = new[] { aAppName };
         objPrerequisiteRedIds = aPrerequisiteRedIds ?? throw new ArgumentNullException(nameof(aPrerequisiteRedIds));
         objIsMacOs = aIsMacOs ?? OperatingSystem.IsMacOS;
-        objWorkingDirectory = aWorkingDirectory ?? (() => ProfilePaths.RepoRoot);
         objAppBundlePath = aAppBundlePath ?? (() => null);
+        objRepoRoot = aWorkingDirectory is not null
+            ? () => new RepoRootResolution(aWorkingDirectory(), string.Empty)
+            : () => ResolveConfiguredRoot(aAppName, aSettings);
+    }
+
+    /// <summary>
+    /// Resolves the app's repo root from live settings, or explains why it cannot.
+    /// </summary>
+    /// <param name="aAppName">The app whose repo root is wanted.</param>
+    /// <param name="aSettings">Live settings accessor, or <c>null</c> when none was supplied.</param>
+    /// <returns>The validated root, or <c>null</c> with the reason.</returns>
+    private static RepoRootResolution ResolveConfiguredRoot(string aAppName, Func<TrSetupSettings>? aSettings)
+    {
+        var vConfigured = aSettings?.Invoke().AppRepoPaths;
+        var vPath = ProfilePaths.ResolveAppRepoRoot(aAppName, vConfigured, out var vProblem);
+        return new RepoRootResolution(vPath, vProblem);
     }
 
     /// <inheritdoc />
@@ -122,13 +154,20 @@ public sealed class MacCatalystBuildCheck : MacCheckBase
             return new FixResult(false, $"Refused: prerequisites still red: {string.Join(", ", vReds)}.");
         }
 
-        return await BuildAndInstallAsync(aCancellationToken).ConfigureAwait(false);
+        // REQ-FN-028: refuse rather than build in whatever directory the process happens to be in.
+        var vRoot = objRepoRoot();
+        if (vRoot.Path is null)
+        {
+            return new FixResult(false, $"Refused: {vRoot.Problem} Nothing was built.");
+        }
+
+        return await BuildAndInstallAsync(vRoot.Path, aCancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<FixResult> BuildAndInstallAsync(CancellationToken aCancellationToken)
+    private async Task<FixResult> BuildAndInstallAsync(string aRepoRoot, CancellationToken aCancellationToken)
     {
         var vRequest = new ProcessRunRequest(
-            "dotnet", "build -f net10.0-maccatalyst -c Release", objWorkingDirectory(), TimeSpan.FromMinutes(30));
+            "dotnet", "build -f net10.0-maccatalyst -c Release", aRepoRoot, TimeSpan.FromMinutes(30));
         var vRun = await ProcessProbe.RunAsync(ProcessRunner, vRequest, aCancellationToken).ConfigureAwait(false);
         if (!vRun.Succeeded)
         {
@@ -152,8 +191,18 @@ public sealed class MacCatalystBuildCheck : MacCheckBase
 
     private string BuildPreview()
     {
+        var vRoot = objRepoRoot();
+
+        // The literal command is always shown (it is the documented contract of the preview), but an
+        // unresolved repo root is stated plainly instead of being papered over with the process cwd.
+        if (vRoot.Path is null)
+        {
+            return $"{BuildCommand}   —   BLOCKED: {vRoot.Problem} " +
+                   "The fixer will refuse until a valid repo path is configured.";
+        }
+
         var vPath = objAppBundlePath()
-            ?? $"{objWorkingDirectory()}/bin/Release/net10.0-maccatalyst/{objAppName}.app";
-        return $"cd {objWorkingDirectory()} && {BuildCommand}   →   {vPath} (then: open the produced .app)";
+            ?? Path.Combine(vRoot.Path, "bin", "Release", "net10.0-maccatalyst", $"{objAppName}.app");
+        return $"cd {vRoot.Path} && {BuildCommand}   →   {vPath} (then: open the produced .app)";
     }
 }

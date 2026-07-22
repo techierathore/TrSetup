@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TrSetup — Deployment Guide</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TrSetup — Deployment Guide</h1>
+    <div class="sub">Last rendered: 2026-07-21</div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#the-one-rule-that-shapes-everything-here">The one rule that shapes everything here</a></li>
+      <li><a href="#artifact-matrix">1. Artifact matrix</a></li>
+      <li class="h3"><a href="#why-the-windows-artifact-is-a-folder-not-a-single-exe">Why the Windows artifact is a folder, not a single .exe</a></li>
+      <li class="h3"><a href="#what-is-not-an-artifact">What is not an artifact</a></li>
+      <li><a href="#building-each-artifact">2. Building each artifact</a></li>
+      <li class="h3"><a href="#which-host-os-each-build-requires">2.1 Which host OS each build requires</a></li>
+      <li class="h3"><a href="#build-the-macos-dmg-on-a-mac">2.2 Build the macOS .dmg — on a Mac</a></li>
+      <li class="h3"><a href="#build-the-windows-zip-on-windows-untested-end-to-end">2.3 Build the Windows zip — on Windows</a></li>
+      <li class="h3"><a href="#building-both-artifacts-in-ci-req-fn-041">2.4 Building both artifacts in CI (REQ-FN-041)</a></li>
+      <li class="h3"><a href="#cutting-a-release">2.5 Cutting a release</a></li>
+      <li><a href="#release-and-distribution-what-download-and-run-looks-like">3. Release and distribution</a></li>
+      <li class="h3"><a href="#macos">macOS</a></li>
+      <li class="h3"><a href="#windows-untested-end-to-end">Windows</a></li>
+      <li><a href="#first-run-configuration">4. First-run configuration</a></li>
+      <li class="h3"><a href="#pick-the-machine-role-s">4.1 Pick the machine role(s)</a></li>
+      <li class="h3"><a href="#pick-the-application-profile">4.2 Pick the application profile</a></li>
+      <li class="h3"><a href="#point-this-machine-at-app-manager-multi-machine-deployments">4.3 Point this machine at App Manager</a></li>
+      <li class="h3"><a href="#set-appmanager-api-key-per-os-durably">4.4 Set APPMANAGER_API_KEY</a></li>
+      <li class="h3"><a href="#optionally-pre-seed-settings-instead-of-using-the-picker">4.5 Optionally pre-seed settings</a></li>
+      <li><a href="#os-trust-gates-what-every-user-will-hit">5. OS trust gates</a></li>
+      <li class="h3"><a href="#current-signing-posture-verified">5.1 Current signing posture (verified)</a></li>
+      <li class="h3"><a href="#macos-the-one-time-trust-step">5.2 macOS — the one-time trust step</a></li>
+      <li class="h3"><a href="#windows-smartscreen-untested-end-to-end">5.3 Windows — SmartScreen</a></li>
+      <li class="h3"><a href="#this-is-an-open-production-gap-recommendation">5.4 This is an open production gap</a></li>
+      <li><a href="#verifying-a-successful-deployment">6. Verifying a successful deployment</a></li>
+      <li><a href="#troubleshooting">7. Troubleshooting</a></li>
+      <li><a href="#known-gaps-and-what-is-not-yet-proven">8. Known gaps and what is not yet proven</a></li>
+      <li class="h3"><a href="#not-proven">Not proven</a></li>
+      <li class="h3"><a href="#proven">Proven</a></li>
+      <li class="h3"><a href="#open-gaps-accepted-or-tracked">Open gaps (accepted or tracked)</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TrSetup — Deployment Guide (Build the artifact · Ship it · Run it on a fresh machine)</h1>
+    <div class="subtitle">Build the artifact · Ship it · Run it on a fresh machine — rendered 2026-07-21</div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#the-one-rule-that-shapes-everything-here">The one rule that shapes everything here</a></li>
+        <li><a href="#artifact-matrix">1. Artifact matrix</a>
+          <ul>
+            <li><a href="#why-the-windows-artifact-is-a-folder-not-a-single-exe">Why the Windows artifact is a folder, not a single <code>.exe</code></a></li>
+            <li><a href="#what-is-not-an-artifact">What is <em>not</em> an artifact</a></li>
+          </ul>
+        </li>
+        <li><a href="#building-each-artifact">2. Building each artifact</a>
+          <ul>
+            <li><a href="#which-host-os-each-build-requires">2.1 Which host OS each build requires</a></li>
+            <li><a href="#build-the-macos-dmg-on-a-mac">2.2 Build the macOS <code>.dmg</code> — on a Mac</a></li>
+            <li><a href="#build-the-windows-zip-on-windows-untested-end-to-end">2.3 Build the Windows zip — on Windows ⚠ UNTESTED END-TO-END</a></li>
+            <li><a href="#building-both-artifacts-in-ci-req-fn-041">2.4 Building both artifacts in CI (REQ-FN-041)</a></li>
+            <li><a href="#cutting-a-release">2.5 Cutting a release</a></li>
+          </ul>
+        </li>
+        <li><a href="#release-and-distribution-what-download-and-run-looks-like">3. Release and distribution — what "download and run" looks like</a>
+          <ul>
+            <li><a href="#macos">macOS</a></li>
+            <li><a href="#windows-untested-end-to-end">Windows ⚠ UNTESTED END-TO-END</a></li>
+          </ul>
+        </li>
+        <li><a href="#first-run-configuration">4. First-run configuration</a>
+          <ul>
+            <li><a href="#pick-the-machine-role-s">4.1 Pick the machine role(s)</a></li>
+            <li><a href="#pick-the-application-profile">4.2 Pick the application profile</a></li>
+            <li><a href="#point-this-machine-at-app-manager-multi-machine-deployments">4.3 Point this machine at App Manager (multi-machine deployments)</a></li>
+            <li><a href="#set-appmanager-api-key-per-os-durably">4.4 Set <code>APPMANAGER_API_KEY</code> — per OS, durably</a></li>
+            <li><a href="#optionally-pre-seed-settings-instead-of-using-the-picker">4.5 Optionally pre-seed settings instead of using the picker</a></li>
+          </ul>
+        </li>
+        <li><a href="#os-trust-gates-what-every-user-will-hit">5. OS trust gates — what every user will hit</a>
+          <ul>
+            <li><a href="#current-signing-posture-verified">5.1 Current signing posture (verified)</a></li>
+            <li><a href="#macos-the-one-time-trust-step">5.2 macOS — the one-time trust step</a></li>
+            <li><a href="#windows-smartscreen-untested-end-to-end">5.3 Windows — SmartScreen ⚠ UNTESTED END-TO-END</a></li>
+            <li><a href="#this-is-an-open-production-gap-recommendation">5.4 This is an open production gap — recommendation</a></li>
+          </ul>
+        </li>
+        <li><a href="#verifying-a-successful-deployment">6. Verifying a successful deployment</a></li>
+        <li><a href="#troubleshooting">7. Troubleshooting</a></li>
+        <li><a href="#known-gaps-and-what-is-not-yet-proven">8. Known gaps and what is not yet proven</a>
+          <ul>
+            <li><a href="#not-proven">Not proven</a></li>
+            <li><a href="#proven">Proven</a></li>
+            <li><a href="#open-gaps-accepted-or-tracked">Open gaps (accepted or tracked)</a></li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+
+    <blockquote>
+      <p><strong>Who this is for.</strong> This guide covers <strong>production deployment</strong>: how a maintainer turns the repo into a downloadable artifact, and how an end user with <strong>no developer tooling at all</strong> gets from that download to a working board. It is the release-side companion to the two existing guides — <code>docs/TrSetup-BuildAndRun-Guide.md</code> (how a developer builds and runs from source) and <code>docs/TrSetup-UsageGuide.md</code> (how to operate, configure and UAT the app). Where those already cover a step, this guide links rather than repeats.</p>
+      <p><strong>Verification status of this document (read before you trust a Windows step).</strong> Every command below was read out of the real scripts and csproj. The <strong>macOS path is proven end to end</strong> on this repo: artifact built, packaged, signature inspected, self-containment counted, board driven live. The <strong>Windows path is NOT proven</strong> — no Windows artifact has ever been produced or launched, on any machine, at any point in this project. Windows sections are marked <strong>⚠ UNTESTED END-TO-END</strong> wherever they appear. They are the correct commands, not a demonstrated outcome.</p>
+      <p>Tracked as <strong>REQ-FN-036 / BRD-57</strong> (zero-prerequisite distributable), <strong>REQ-FN-037 / BRD-58</strong> (Mac <code>.dmg</code>), <strong>REQ-FN-039 / BRD-60</strong> (Windows self-contained artifact), <strong>REQ-FN-038 / BRD-59</strong> (signing — <em>Blocked</em>), <strong>REQ-FN-040 / BRD-61</strong> (documented unsigned first-run trust), <strong>REQ-FN-041</strong> (CI pipeline).</p>
+    </blockquote>
+
+    <h2 id="the-one-rule-that-shapes-everything-here">The one rule that shapes everything here<a class="anchor-link" href="#the-one-rule-that-shapes-everything-here">#</a></h2>
+
+    <p><strong>TrSetup installs .NET. Therefore TrSetup must never require .NET.</strong></p>
+
+    <p>That is the non-circular bootstrap rule (BRD-57). An artifact that needs the .NET Desktop Runtime, the MAUI workload, or the Windows App SDK already present is broken <em>by definition</em> — it demands the exact machine state it exists to repair. Every packaging decision below (self-contained publish, bundled Windows App SDK, no trimming, no single-file, an accepted ~150 MB artifact) follows from that one rule, and the build scripts <strong>hard-fail</strong> rather than ship an artifact that violates it.</p>
+
+    <hr>
+
+    <h2 id="artifact-matrix">1. Artifact matrix<a class="anchor-link" href="#artifact-matrix">#</a></h2>
+
+    <table>
+      <thead>
+        <tr><th></th><th><strong>macOS</strong></th><th><strong>Windows</strong> ⚠ UNTESTED END-TO-END</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Ships as</td><td><code>TrSetup-&lt;version&gt;-macOS.dmg</code> — a mountable disk image with the drag-to-Applications layout</td><td><code>TrSetup-&lt;version&gt;-Windows-&lt;rid&gt;.zip</code> — a <strong>folder</strong> of files, zipped</td></tr>
+        <tr><td>Contains</td><td><code>TrSetup.app</code> + an <code>/Applications</code> symlink</td><td><code>TrSetup.exe</code> plus every runtime DLL and native asset beside it</td></tr>
+        <tr><td>Head</td><td>MAUI Blazor Hybrid, Mac Catalyst (<code>net10.0-maccatalyst</code>)</td><td>MAUI Blazor Hybrid, unpackaged WinUI 3 (<code>net10.0-windows10.0.19041.0</code>, <code>WindowsPackageType=None</code>)</td></tr>
+        <tr><td>Architectures</td><td><code>maccatalyst-arm64</code> <strong>and</strong> <code>maccatalyst-x64</code> — the build lipos them into one <strong>universal</strong> <code>.app</code>; the shipped bundle runs natively on Apple Silicon and Intel</td><td><code>win-x64</code> (default) and <code>win-arm64</code> — <strong>separate zips</strong>, one per RID</td></tr>
+        <tr><td>Bundles the .NET runtime</td><td>✅ <strong>Verified</strong> — 56 <code>System.*</code> assemblies in <code>TrSetup.app/Contents/MonoBundle</code></td><td>Intended via <code>SelfContained=true</code>; asserted at package time by <code>System.Private.CoreLib.dll</code> sitting beside the exe. <strong>Never observed on a real publish.</strong></td></tr>
+        <tr><td>Bundles the UI runtime</td><td>n/a (Catalyst uses the system WebKit <code>WKWebView</code>)</td><td>Intended via <code>WindowsAppSDKSelfContained=true</code>; asserted by <code>Microsoft.WindowsAppRuntime*</code> + <code>Microsoft.UI.Xaml.dll</code> beside the exe</td></tr>
+        <tr><td>Size</td><td><strong><code>.app</code> 156 MB · <code>.dmg</code> 49 MB</strong> (measured on this repo, version 1.0)</td><td><strong>Unmeasured.</strong> Expect <strong>~150 MB+</strong> unzipped — self-contained MAUI + WinUI. Size is an accepted trade for the bootstrap rule, not a defect.</td></tr>
+        <tr><td>Signed</td><td><strong>Ad-hoc only</strong> (<code>Signature=adhoc</code>, <code>TeamIdentifier=not set</code>) — not notarized. See <a href="#os-trust-gates-what-every-user-will-hit">§5</a>.</td><td><strong>Unsigned.</strong> No Authenticode certificate is configured anywhere in the repo.</td></tr>
+        <tr><td>Minimum OS</td><td><code>LSMinimumSystemVersion</code> 12.0; csproj <code>SupportedOSPlatformVersion</code> 15.0 for maccatalyst</td><td>Windows 10 build 17763 (<code>SupportedOSPlatformVersion</code> / <code>TargetPlatformMinVersion</code> 10.0.17763.0)</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="why-the-windows-artifact-is-a-folder-not-a-single-exe">Why the Windows artifact is a folder, not a single <code>.exe</code><a class="anchor-link" href="#why-the-windows-artifact-is-a-folder-not-a-single-exe">#</a></h3>
+
+    <p>Two properties are deliberately <strong>not</strong> enabled in <code>src/TrSetup/TrSetup.csproj</code>, and you should not add them:</p>
+
+    <ul>
+      <li><strong><code>PublishSingleFile</code></strong> — WinUI 3 / Windows App SDK does not reliably support single-file packing; native assets must sit beside the executable. The honest shape for an unpackaged WinUI app is a folder. If a one-click installer is wanted later, point <strong>Inno Setup</strong> or <strong>WiX</strong> at the published folder — do not chase single-file.</li>
+      <li><strong><code>PublishTrimmed</code></strong> — trimming is unsupported for MAUI/WinUI and silently breaks XAML and reflection paths. A trimmed build fails at runtime, not at build time, which is the worst possible failure mode for a distributable.</li>
+    </ul>
+
+    <blockquote>
+      <p><strong>The lone <code>.exe</code> will not run.</strong> Users must extract and keep the <strong>whole folder</strong>. This is the single most likely support question on Windows.</p>
+    </blockquote>
+
+    <h3 id="what-is-not-an-artifact">What is <em>not</em> an artifact<a class="anchor-link" href="#what-is-not-an-artifact">#</a></h3>
+
+    <p><code>TrSetup.Web</code> is a <strong>non-shipping test host</strong> (REQ-FN-034). It is used by the Playwright harness and as the no-build-tools "copy the folder to the Mac" vehicle described in <code>TrSetup-UsageGuide.md</code> §3 Option A. <strong>Never publish it as a product download.</strong> Likewise, any lowercase <code>trsetup</code> folder under <code>publish/&lt;rid&gt;/</code> is a stale artifact of the deleted Spectre CLI head — delete it, do not ship it.</p>
+
+    <hr>
+
+    <h2 id="building-each-artifact">2. Building each artifact<a class="anchor-link" href="#building-each-artifact">#</a></h2>
+
+    <h3 id="which-host-os-each-build-requires">2.1 Which host OS each build requires<a class="anchor-link" href="#which-host-os-each-build-requires">#</a></h3>
+
+    <table>
+      <thead>
+        <tr><th>Artifact</th><th>Buildable on macOS</th><th>Buildable on Windows</th><th>Buildable on Linux/WSL</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Mac <code>.dmg</code></td><td>✅ <strong>required</strong></td><td>❌</td><td>❌</td></tr>
+        <tr><td>Windows <code>.zip</code></td><td>❌ <strong>impossible — see below</strong></td><td>✅ <strong>required</strong></td><td>❌</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>There is no cross-build path in either direction.</strong> A MAUI head compiles against its OS's native SDKs; Visual Studio's "pair to Mac" is iOS-only and does not produce a Catalyst desktop <code>.app</code>.</p>
+
+    <p><strong>Why the Windows artifact cannot be published from a Mac</strong> — this was attempted twice on this repo and failed both times, and the reason is structural, not a missing flag:</p>
+
+    <ol>
+      <li><code>TrSetup.csproj</code> carries a deliberate guard that <strong>replaces</strong> the target-framework list on macOS:
+<pre><code class="language-xml">&lt;TargetFrameworks&gt;net10.0-windows10.0.19041.0&lt;/TargetFrameworks&gt;
+&lt;TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('OSX'))"&gt;net10.0-maccatalyst&lt;/TargetFrameworks&gt;</code></pre>
+      It must replace rather than append — otherwise restore still evaluates the Windows TFM on the Mac and fails with <strong><code>NETSDK1100</code></strong> (Windows targeting not enabled).</li>
+      <li>Forcing the list back with <code>-p:TargetFrameworks=…</code> propagates that as a <strong>global property</strong> into <code>TrSetupUI</code> and <code>TrSetup.Core</code>, corrupting the project graph and failing with <strong><code>NETSDK1005</code></strong> (assets file has no target for <code>net10.0</code>).</li>
+    </ol>
+
+    <p><code>build/package-windows.ps1</code> refuses up front for the same reason, with an explicit message rather than a confusing MSBuild error:</p>
+
+<pre><code>package-windows.ps1 must run on Windows: the MAUI Windows head needs the Windows App SDK
+and XAML toolchain, which are not available on macOS/Linux.</code></pre>
+
+    <p><strong>A Windows host is required. There is no workaround.</strong> Use a Windows machine, a Windows VM, or the <code>windows-latest</code> CI job (<a href="#building-both-artifacts-in-ci-req-fn-041">§2.4</a>).</p>
+
+    <h3 id="build-the-macos-dmg-on-a-mac">2.2 Build the macOS <code>.dmg</code> — on a Mac<a class="anchor-link" href="#build-the-macos-dmg-on-a-mac">#</a></h3>
+
+    <p><strong>Prerequisites on the build Mac</strong> (see <code>TrSetup-BuildAndRun-Guide.md</code> §3 Option B for detail): <strong>full Xcode</strong> with the licence accepted — the Command Line Tools alone are not enough — the <strong>.NET 10 SDK</strong>, the <strong>MAUI workload</strong> (<code>dotnet workload install maui-maccatalyst</code>), and access to the private <strong>TrBlazeUI</strong> package feed.</p>
+
+<pre><code class="language-bash">cd &lt;repo-root&gt;
+dotnet build src/TrSetup/TrSetup.csproj -f net10.0-maccatalyst -c Release
+./build/package-mac.sh</code></pre>
+
+    <p><code>package-mac.sh</code> takes an optional output directory (default <code>artifacts/</code>). It reads <code>CFBundleShortVersionString</code> from the built bundle so the filename is traceable to a build, stages the <code>.app</code> next to an <code>/Applications</code> symlink, and runs <code>hdiutil create -format UDZO</code>. Output: <code>artifacts/TrSetup-&lt;version&gt;-macOS.dmg</code>.</p>
+
+    <p>The script refuses on a non-Darwin host, and refuses if the <code>.app</code> is missing — telling you the exact build command to run first.</p>
+
+    <p><strong>Verify self-containment before you publish it</strong> (this is the BRD-57 gate, not a formality):</p>
+
+<pre><code class="language-bash">APP="src/TrSetup/bin/Release/net10.0-maccatalyst/TrSetup.app"
+ls "$APP/Contents/MonoBundle/" | grep -c '^System\.'    # must be ≥10; currently 56
+codesign -d -vvv "$APP" 2&gt;&amp;1 | grep -E 'Signature|TeamIdentifier'
+du -sh "$APP"</code></pre>
+
+    <p>Confirmed on this repo: <strong>56</strong> <code>System.*</code> assemblies, <code>Signature=adhoc</code>, <code>TeamIdentifier=not set</code>, bundle <strong>156 MB</strong>, <code>.dmg</code> <strong>49 MB</strong>. A packaged <code>.dmg</code> has been launched on a machine whose only .NET SDK lived under <code>~/.dotnet</code> rather than a system install — which is the practical demonstration that the bundle carries its own runtime.</p>
+
+    <p><strong>Verify the image itself mounts with the right layout:</strong></p>
+
+<pre><code class="language-bash">hdiutil attach artifacts/TrSetup-1.0-macOS.dmg      # volume shows TrSetup.app + Applications symlink
+hdiutil detach /Volumes/TrSetup</code></pre>
+
+    <h3 id="build-the-windows-zip-on-windows-untested-end-to-end">2.3 Build the Windows zip — on Windows ⚠ UNTESTED END-TO-END<a class="anchor-link" href="#build-the-windows-zip-on-windows-untested-end-to-end">#</a></h3>
+
+    <blockquote>
+      <p><strong>Nobody has ever run this successfully.</strong> The csproj properties were verified only by <strong>MSBuild property evaluation on a Mac</strong> (<code>-p:EnableWindowsTargeting=true</code>), which proves the graph <em>resolves</em> <code>SelfContained=true</code>, <code>WindowsAppSDKSelfContained=true</code>, <code>RuntimeIdentifier=win-x64</code>, <code>RuntimeIdentifiers=win-x64;win-arm64</code>, and that <code>-p:RuntimeIdentifier=win-arm64</code> correctly overrides the conditional default. It proves <strong>nothing</strong> about whether the publish succeeds, whether the assertion passes, or whether the exe starts. Treat the first real run as an experiment, not a release.</p>
+    </blockquote>
+
+    <p><strong>Prerequisites on the build Windows machine:</strong> .NET 10 SDK, <code>dotnet workload install maui</code>, PowerShell, and access to the TrBlazeUI feed.</p>
+
+<pre><code class="language-powershell">cd &lt;repo-root&gt;
+.\build\package-windows.ps1                  # win-x64 (default)
+.\build\package-windows.ps1 -Rid win-arm64   # the only other accepted value</code></pre>
+
+    <p>Parameters are exactly <code>-Rid</code> (<code>win-x64</code> | <code>win-arm64</code>, validated) and <code>-OutDir</code> (default <code>&lt;repo&gt;\artifacts</code>). There are no other flags.</p>
+
+    <p>Internally the script runs one publish — the self-containment switches are <strong>not</strong> repeated on the command line, because they live in the csproj as the single source of truth:</p>
+
+<pre><code class="language-powershell">dotnet publish &lt;repo&gt;\src\TrSetup\TrSetup.csproj -f net10.0-windows10.0.19041.0 -c Release -r &lt;rid&gt; -o &lt;stage&gt;</code></pre>
+
+    <p><strong>Then it hard-asserts self-containment and fails the build if any of the three is missing</strong> — a framework-dependent artifact never gets zipped:</p>
+
+    <table>
+      <thead>
+        <tr><th>Asserted file beside <code>TrSetup.exe</code></th><th>Proves</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>System.Private.CoreLib.dll</code></td><td>the .NET runtime is bundled</td></tr>
+        <tr><td><code>Microsoft.WindowsAppRuntime*</code></td><td>the Windows App SDK is bundled</td></tr>
+        <tr><td><code>Microsoft.UI.Xaml.dll</code></td><td>the WinUI 3 runtime is bundled</td></tr>
+      </tbody>
+    </table>
+
+    <p>On failure it emits: <em>"Artifact is NOT self-contained — it would fail on a fresh machine. Check SelfContained / WindowsAppSDKSelfContained in TrSetup.csproj (REQ-FN-039)."</em></p>
+
+    <p>On success it reads the exe's <code>ProductVersion</code> and produces <code>artifacts\TrSetup-&lt;version&gt;-Windows-&lt;rid&gt;.zip</code>, printing the size and the SmartScreen warning.</p>
+
+    <p><strong>Verify manually as well</strong> (do not rely on the script alone for a first release):</p>
+
+<pre><code class="language-powershell">Test-Path .\artifacts\TrSetup-win-x64\System.Private.CoreLib.dll
+Get-ChildItem .\artifacts\TrSetup-win-x64 -Filter 'Microsoft.WindowsAppRuntime*'
+Test-Path .\artifacts\TrSetup-win-x64\Microsoft.UI.Xaml.dll</code></pre>
+
+    <p><strong>The only test that actually closes BRD-57/BRD-60</strong> is the clean-image launch: extract the zip on a Windows machine with <strong>no .NET Desktop Runtime and no Windows App SDK installed</strong>, run <code>TrSetup.exe</code>, and confirm the board renders. Until someone does that, REQ-FN-036 stays <code>PARTIAL</code>.</p>
+
+    <h3 id="building-both-artifacts-in-ci-req-fn-041">2.4 Building both artifacts in CI (REQ-FN-041)<a class="anchor-link" href="#building-both-artifacts-in-ci-req-fn-041">#</a></h3>
+
+    <p><code>.github/workflows/build-artifacts.yml</code> builds both without any Apple Developer account, because the Catalyst build uses codesign's ad-hoc identity and therefore needs no certificate and no signing secrets.</p>
+
+    <table>
+      <thead>
+        <tr><th>Job</th><th>Runner</th><th>Does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>macos</code></td><td><code>macos-15</code> (pinned, not <code>-latest</code> — the image ships the Xcode Catalyst needs)</td><td>installs .NET + <code>maui-maccatalyst</code>, runs unit tests, builds the <code>.app</code>, runs <code>package-mac.sh</code>, <strong>asserts ≥10 bundled <code>System.*</code> assemblies</strong></td></tr>
+        <tr><td><code>windows</code></td><td><code>windows-latest</code>, matrix <code>win-x64</code> + <code>win-arm64</code>, <code>fail-fast: false</code> so an arm64 failure cannot hide a good x64 artifact</td><td>installs .NET + <code>maui</code>, runs unit tests, runs <code>package-windows.ps1</code> (which carries its own hard assertion)</td></tr>
+        <tr><td><code>release</code></td><td><code>ubuntu-latest</code>, only on a <code>v*</code> tag</td><td>downloads both artifacts and publishes a GitHub Release whose body carries the unsigned-install trust steps verbatim</td></tr>
+      </tbody>
+    </table>
+
+    <p>Triggers: manual <code>workflow_dispatch</code>, a <code>v*</code> tag, and pull requests touching <code>src/**</code>, <code>build/**</code>, or the workflow file.</p>
+
+    <blockquote>
+      <p><strong>⚠ One repository secret is required before the first run: <code>GH_PACKAGES_PAT</code></strong> — a PAT with <code>read:packages</code> for the <code>techierathore</code> feed. <code>TrSetupUI</code> depends on <strong>TrBlazeUI 1.0.7</strong>, which is not on nuget.org, and the default <code>GITHUB_TOKEN</code> cannot read another owner's package feed. Without it, restore fails in every job. Set it under <strong>Settings → Secrets and variables → Actions</strong>.</p>
+      <p><strong>⚠ This workflow has never executed.</strong> It cannot run until the secret exists and the branch is pushed. Its YAML structure was validated locally; its behaviour was not.</p>
+    </blockquote>
+
+    <h3 id="cutting-a-release">2.5 Cutting a release<a class="anchor-link" href="#cutting-a-release">#</a></h3>
+
+    <ol>
+      <li>Confirm the version. <code>ApplicationDisplayVersion</code> (<code>1.0</code>) and <code>ApplicationVersion</code> (<code>1</code>) live in <code>src/TrSetup/TrSetup.csproj</code>; the Mac artifact filename derives from the former via the bundle's <code>CFBundleShortVersionString</code>, and the Windows filename from the exe's <code>ProductVersion</code>.</li>
+      <li>Tag <code>vX.Y.Z</code> and push the tag. The <code>release</code> job publishes both artifacts with install instructions in the body.</li>
+      <li><strong>Do not publish a release whose Windows zip has not been launched on a clean image.</strong> Until that happens, mark the Windows asset as pre-release/experimental in the release notes.</li>
+    </ol>
+
+    <hr>
+
+    <h2 id="release-and-distribution-what-download-and-run-looks-like">3. Release and distribution — what "download and run" looks like<a class="anchor-link" href="#release-and-distribution-what-download-and-run-looks-like">#</a></h2>
+
+    <p>A user needs <strong>exactly one file</strong> and <strong>no developer tooling</strong>.</p>
+
+    <h3 id="macos">macOS<a class="anchor-link" href="#macos">#</a></h3>
+
+    <ol>
+      <li>Download <code>TrSetup-&lt;version&gt;-macOS.dmg</code> from the GitHub Release.</li>
+      <li>Double-click it — the volume mounts with the standard layout.</li>
+      <li>Drag <strong>TrSetup</strong> onto the <strong>Applications</strong> shortcut.</li>
+      <li><strong>Do the one-time trust step in <a href="#os-trust-gates-what-every-user-will-hit">§5</a> before double-clicking.</strong> Skipping it produces a block dialog that looks like a corrupt download.</li>
+      <li>Open TrSetup from Applications or Launchpad.</li>
+    </ol>
+
+    <p>Nothing else is installed: no .NET, no Xcode, no MAUI workload, no Homebrew.</p>
+
+    <h3 id="windows-untested-end-to-end">Windows ⚠ UNTESTED END-TO-END<a class="anchor-link" href="#windows-untested-end-to-end">#</a></h3>
+
+    <ol>
+      <li>Download <code>TrSetup-&lt;version&gt;-Windows-win-x64.zip</code> (or <code>win-arm64</code> on an ARM device).</li>
+      <li>Right-click the zip → <strong>Properties</strong> → tick <strong>Unblock</strong> → <strong>OK</strong>. <em>(This clears the Mark-of-the-Web from the archive before extraction and avoids per-file blocks inside it.)</em></li>
+      <li>Extract to a stable location — e.g. <code>C:\Program Files\TrSetup</code> or <code>%LOCALAPPDATA%\TrSetup</code>. <strong>Extract the whole folder; do not pull the exe out on its own.</strong></li>
+      <li>Run <code>TrSetup.exe</code> and clear SmartScreen once — see <a href="#os-trust-gates-what-every-user-will-hit">§5</a>.</li>
+      <li>Optionally pin it or create a Start Menu shortcut. There is no installer and no MSIX — <code>WindowsPackageType=None</code> is deliberate (ADR-001), and there is correspondingly <strong>no uninstaller</strong>: deleting the folder is the uninstall.</li>
+    </ol>
+
+    <blockquote>
+      <p>There is <strong>no auto-update mechanism</strong>. Upgrading means downloading the new artifact and replacing the app / folder. <code>~/.trsetup/settings.json</code> and <code>%APPDATA%\TrSetup\settings.json</code> live outside the artifact, so settings survive an upgrade.</p>
+    </blockquote>
+
+    <hr>
+
+    <h2 id="first-run-configuration">4. First-run configuration<a class="anchor-link" href="#first-run-configuration">#</a></h2>
+
+    <p>The full reference is <code>TrSetup-UsageGuide.md</code> §5. This section covers only what a <em>deployed</em> user must decide on day one.</p>
+
+    <h3 id="pick-the-machine-role-s">4.1 Pick the machine role(s)<a class="anchor-link" href="#pick-the-machine-role-s">#</a></h3>
+
+    <p>On first launch the role picker (<code>/setup</code>) appears because no settings file exists yet. Tick only the roles this machine genuinely plays:</p>
+
+    <table>
+      <thead>
+        <tr><th>Role</th><th>Pick it when this machine…</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Agent host (WSL)</strong></td><td>runs the AI agent + verification stack — .NET SDK, Playwright, headless Chromium, the <code>winrun</code> bridge</td></tr>
+        <tr><td><strong>Device host (Windows)</strong></td><td>hosts the Android emulator + Appium (<code>uiautomator2</code>)</td></tr>
+        <tr><td><strong>Device host (Mac)</strong></td><td>serves Appium with the <code>xcuitest</code> + <code>mac2</code> drivers on the LAN</td></tr>
+        <tr><td><strong>App runner (Mac)</strong></td><td>builds and runs the portfolio apps — Catalyst builds, SDKs, workloads</td></tr>
+        <tr><td><em>"I develop natively"</em></td><td>is not behind the WSL bridge — this <strong>drops</strong> the mirrored-networking and <code>winrun</code> checks (BRD-8)</td></tr>
+      </tbody>
+    </table>
+
+    <p>Rows belonging to roles you did not pick render <code>○ N/A</code>. <strong>That is by design, not an error</strong> — it is the most commonly misread part of the board.</p>
+
+    <h3 id="pick-the-application-profile">4.2 Pick the application profile<a class="anchor-link" href="#pick-the-application-profile">#</a></h3>
+
+    <p><strong>AppStudio</strong>, <strong>TrStudio</strong>, or none (framework-only). The board re-scopes instantly on change — no restart. Switch later via <strong>Settings → Selected application</strong> or the board header's app switcher.</p>
+
+    <h3 id="point-this-machine-at-app-manager-multi-machine-deployments">4.3 Point this machine at App Manager (multi-machine deployments)<a class="anchor-link" href="#point-this-machine-at-app-manager-multi-machine-deployments">#</a></h3>
+
+    <p><strong>This is the setting most deployed users will need, and the one that silently blocks them if missed.</strong></p>
+
+    <p>The <code>appstudio.appmanager-api</code> check defaults to <code>https://localhost:5101/</code>, which is correct <strong>only</strong> when App Manager runs on the same box. On a real two-machine setup — a Mac app-runner plus a Windows device-host running App Manager — the Mac's own <code>localhost:5101</code> has nothing on it, so the row can never go green and the Catalyst build fixer stays gated behind a prerequisite the user has no way to satisfy.</p>
+
+    <p><strong>Settings → Endpoints → App Manager API URL.</strong> Enter an absolute <code>http(s)://</code> URL (validated in-app), e.g. <code>https://192.168.1.14:5101/health</code>. Persisted as <code>Endpoints.AppManagerUrl</code> in the settings file; it <strong>replaces</strong> the profile default for this machine only.</p>
+
+    <ul>
+      <li><strong>Point it at a URL that answers 2xx.</strong> App Manager serves <code>/health</code>. Its root <code>/</code> answers <strong>404</strong>, which reads as <em>reachable but not healthy</em> (amber) — enough to not block, but not a green row.</li>
+      <li><strong>Self-signed certificates:</strong> a LAN App Manager typically serves the ASP.NET development certificate (<code>CN=localhost</code>, self-signed), which fails validation on <strong>both</strong> issuer and hostname when reached by IP. Turn on <strong>"Trust a self-signed certificate for this endpoint"</strong> — an explicit, per-endpoint, <strong>off-by-default</strong> opt-in. TrSetup then skips certificate validation <strong>for that endpoint alone</strong> and says so in the row's evidence. Every other probe keeps full validation, and a profile's built-in default URL is <em>always</em> fully validated — a stale opt-in can never weaken a built-in probe.</li>
+    </ul>
+
+    <p>A correctly configured row reads, verbatim:</p>
+
+<pre><code>Endpoint https://192.168.1.14:5101/health [configured in Settings → Endpoints ['AppManagerUrl'],
+self-signed certificate explicitly trusted] answered 200.</code></pre>
+
+    <p>The evidence always names the URL <strong>and</strong> its provenance, so a <code>connection refused (localhost:5101)</code> can no longer be misread as "the service is down" when the real cause is "pointed at the wrong host".</p>
+
+    <h3 id="set-appmanager-api-key-per-os-durably">4.4 Set <code>APPMANAGER_API_KEY</code> — per OS, durably<a class="anchor-link" href="#set-appmanager-api-key-per-os-durably">#</a></h3>
+
+    <p><strong>TrSetup never stores secrets</strong> (ADR-008). The settings file holds addresses and URLs only. The <code>appstudio.appmanager-secret</code> check verifies the environment variable is <strong>present</strong>; it never reads, displays, logs, or exports the value, and the report prints <code>present (value never shown)</code>.</p>
+
+    <p>The variable must therefore be set <strong>in the environment TrSetup itself is launched from</strong>, and it must survive a reboot. A value exported in a one-off terminal will not be visible to a GUI app launched from the Dock or Start Menu.</p>
+
+    <p><strong>Windows</strong> — set it for the user account, then <strong>restart</strong> the app (and Explorer, or sign out and back in, so the GUI shell inherits it):</p>
+
+<pre><code class="language-powershell">[Environment]::SetEnvironmentVariable('APPMANAGER_API_KEY', '&lt;your-key&gt;', 'User')</code></pre>
+
+    <p>Or <strong>System Properties → Advanced → Environment Variables → User variables → New</strong>.</p>
+
+    <p><strong>macOS (GUI launch from Finder/Dock/Launchpad)</strong> — a <code>.app</code> launched by <code>launchd</code> does <strong>not</strong> inherit your shell profile. Register it with the user's launchd session, then log out and back in:</p>
+
+<pre><code class="language-bash">launchctl setenv APPMANAGER_API_KEY '&lt;your-key&gt;'</code></pre>
+
+    <p><code>launchctl setenv</code> does not survive a reboot on its own. For a durable setting, add it to a user LaunchAgent plist under <code>~/Library/LaunchAgents/</code> that runs <code>launchctl setenv</code> at login, or launch TrSetup from a terminal that has the variable exported.</p>
+
+    <p><strong>macOS / Linux / WSL (terminal launch — the browser board and CLI-driven runs)</strong> — export it in your shell profile:</p>
+
+<pre><code class="language-bash">echo 'export APPMANAGER_API_KEY="&lt;your-key&gt;"' &gt;&gt; ~/.zshrc   # or ~/.bashrc</code></pre>
+
+    <blockquote>
+      <p><strong>Verify it took effect the same way TrSetup does:</strong> re-run the board and confirm the <em>AppManager applicationId/API key configured</em> row goes green. If the terminal shows the variable but the row stays red, the GUI app is not inheriting it — that is the launchd/Explorer inheritance problem above, not a TrSetup bug.</p>
+    </blockquote>
+
+    <h3 id="optionally-pre-seed-settings-instead-of-using-the-picker">4.5 Optionally pre-seed settings instead of using the picker<a class="anchor-link" href="#optionally-pre-seed-settings-instead-of-using-the-picker">#</a></h3>
+
+    <p>For a fleet or a headless machine, drop a settings file in place <strong>before first launch</strong> — <code>TrSetup-UsageGuide.md</code> §5.3 lists five ready-made samples in <code>docs/samples/</code>. Settings live at <code>%APPDATA%\TrSetup\settings.json</code> on Windows and <code>~/.trsetup/settings.json</code> on macOS/Linux/WSL; the Settings screen always shows the authoritative path for the running machine.</p>
+
+    <hr>
+
+    <h2 id="os-trust-gates-what-every-user-will-hit">5. OS trust gates — what every user will hit<a class="anchor-link" href="#os-trust-gates-what-every-user-will-hit">#</a></h2>
+
+    <blockquote>
+      <p><strong>Neither artifact is code-signed for distribution today.</strong> This was verified, not assumed. <strong>Every</strong> user of <strong>every</strong> current release will hit an OS block on first launch. A release that ships without these instructions in the release body is indistinguishable from a broken download.</p>
+    </blockquote>
+
+    <h3 id="current-signing-posture-verified">5.1 Current signing posture (verified)<a class="anchor-link" href="#current-signing-posture-verified">#</a></h3>
+
+    <table>
+      <thead>
+        <tr><th></th><th>macOS</th><th>Windows</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Signing</td><td><strong>Ad-hoc only.</strong> <code>codesign -d -vvv</code> on the built bundle reports <code>Signature=adhoc</code>, <code>TeamIdentifier=not set</code>, <code>CodeDirectory flags=0x2(adhoc)</code>. Set by <code>&lt;CodesignKey&gt;-&lt;/CodesignKey&gt;</code> in the csproj — codesign's ad-hoc identity, which requires no Apple certificate.</td><td><strong>Unsigned.</strong> No Authenticode certificate, <code>signtool</code> invocation, or signing property exists anywhere in the csproj, the packaging script, or the CI workflow.</td></tr>
+        <tr><td>Notarized</td><td><strong>No.</strong> Requires a paid Apple Developer account the project does not have.</td><td>n/a</td></tr>
+        <tr><td>Gatekeeper verdict</td><td><code>spctl -a -t exec</code> → <strong><code>rejected</code></strong> on the built bundle. Reproduced on a simulated download: setting <code>com.apple.quarantine</code> on the <code>.dmg</code> as Safari would, mounting it and copying the app out <strong>propagates the flag to the <code>.app</code></strong>, and the app will not open.</td><td>SmartScreen shows <em>"Windows protected your PC"</em> on an unsigned exe with Mark-of-the-Web. <strong>Predicted from posture, not observed</strong> — no Windows artifact exists to test.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="macos-the-one-time-trust-step">5.2 macOS — the one-time trust step<a class="anchor-link" href="#macos-the-one-time-trust-step">#</a></h3>
+
+    <p>Install first (open the <code>.dmg</code>, drag to Applications), then do <strong>either</strong> of these <strong>once</strong>:</p>
+
+    <p><strong>Option A — right-click, no terminal:</strong></p>
+    <ol>
+      <li>Open <strong>Applications</strong> in Finder.</li>
+      <li><strong>Right-click</strong> (or Control-click) <strong>TrSetup</strong> → <strong>Open</strong>.</li>
+      <li>Click <strong>Open</strong> in the warning dialog.</li>
+    </ol>
+
+    <p><strong>Option B — terminal, one line:</strong></p>
+
+<pre><code class="language-bash">xattr -dr com.apple.quarantine /Applications/TrSetup.app</code></pre>
+
+    <p><em>(Verified: applying this to a quarantined copy cleared the flag and the app launched.)</em></p>
+
+    <p>macOS remembers the choice; afterwards it launches normally from the Dock or Launchpad. <strong>Double-clicking before doing one of these just shows the block</strong> — do the trust step first.</p>
+
+    <p>If it still refuses, allow it once via <strong>System Settings → Privacy &amp; Security</strong> (an "Open Anyway" button appears there after a blocked attempt).</p>
+
+    <h3 id="windows-smartscreen-untested-end-to-end">5.3 Windows — SmartScreen ⚠ UNTESTED END-TO-END<a class="anchor-link" href="#windows-smartscreen-untested-end-to-end">#</a></h3>
+
+    <ol>
+      <li>Right-click the downloaded <strong>zip</strong> → <strong>Properties</strong> → <strong>Unblock</strong> → <strong>OK</strong>, then extract. <em>(Doing this on the archive avoids Mark-of-the-Web being stamped on every extracted file.)</em></li>
+      <li>Run <code>TrSetup.exe</code>. If SmartScreen shows <em>"Windows protected your PC"</em>: click <strong>More info</strong> → <strong>Run anyway</strong>.</li>
+    </ol>
+
+    <p>Two adjacent Windows behaviours worth knowing:</p>
+
+    <ul>
+      <li><strong>"This program might not have installed correctly."</strong> Because the exe is named <code>TrSetup.exe</code> (it contains "Setup"), Windows' Program Compatibility Assistant would false-flag it as an unfinished installer. Current builds embed <code>Platforms\Windows\app.manifest</code> (a <code>&lt;compatibility&gt;</code> block plus <code>asInvoker &lt;trustInfo&gt;</code>, wired via a windows-scoped <code>&lt;ApplicationManifest&gt;</code>) that exempts the exe from that heuristic. TrSetup is not an installer. If an older build already triggered the dialog once, click <strong>"This program installed correctly"</strong> to clear Windows' cached entry.</li>
+      <li><strong>Antivirus / enterprise policy.</strong> A large unsigned exe that shells out to install SDKs is a plausible heuristic-AV target and may be quarantined outright, or blocked by WDAC/AppLocker in a managed environment. Not observed — flagged as a realistic risk of shipping unsigned.</li>
+    </ul>
+
+    <h3 id="this-is-an-open-production-gap-recommendation">5.4 This is an open production gap — recommendation<a class="anchor-link" href="#this-is-an-open-production-gap-recommendation">#</a></h3>
+
+    <p><strong>REQ-FN-038 / BRD-59 is <code>Blocked</code>, parked by owner decision (2026-07-20): no Apple Developer account for now.</strong> The defect is real and reproduced, not theoretical, and it cannot be closed by an agent — it needs a purchased certificate.</p>
+
+    <p>For distribution beyond the owner's own machines, close it in this order:</p>
+
+    <ol>
+      <li><strong>macOS — Developer ID + notarization + stapling.</strong> Requires an Apple Developer Program membership (~$99/yr). Replace <code>&lt;CodesignKey&gt;-&lt;/CodesignKey&gt;</code> with the Developer ID Application identity, sign with the hardened runtime, submit the <code>.dmg</code> via <code>notarytool</code>, then <code>xattr -dr</code> disappears from every user's life and §5.2 can be deleted outright.</li>
+      <li><strong>Windows — Authenticode.</strong> Sign <code>TrSetup.exe</code> (and ideally the zip contents) with an OV or, better, an <strong>EV</strong> certificate — EV grants immediate SmartScreen reputation, whereas an OV certificate must accumulate reputation and will still warn for a while. Add a <code>signtool</code> step to <code>package-windows.ps1</code> after the self-containment assertion and before the zip.</li>
+      <li>Store both certificates as CI secrets and sign in the workflow, so no unsigned artifact can ever reach a Release.</li>
+    </ol>
+
+    <p>Until then, <strong>the trust steps must appear in the release body</strong>, not only in the docs. They already do — <code>.github/workflows/build-artifacts.yml</code>'s <code>release</code> job writes them verbatim into the release notes, and both packaging scripts print them at the end of a successful build.</p>
+
+    <hr>
+
+    <h2 id="verifying-a-successful-deployment">6. Verifying a successful deployment<a class="anchor-link" href="#verifying-a-successful-deployment">#</a></h2>
+
+    <p>Run this on the deployed machine, in order. It takes about two minutes and distinguishes "the window opened" from "the app actually works".</p>
+
+    <ol>
+      <li><strong>The window opens and shows the board.</strong> On first run you get the role picker (<code>/setup</code>) instead — complete it, then you land on the board. A native window titled <strong>TrSetup</strong>.</li>
+      <li><strong>Rows render, grouped, with real evidence.</strong> Not a blank board. Every row shows an icon <strong>and</strong> a word — <code>Pass</code> / <code>Warn</code> / <code>Fail</code> / <code>N/A</code> — plus an evidence line naming the command or path it looked at (<code>Node.js v22.23.1 present ($ node --version).</code>). A row with a status but no evidence text is a bug worth reporting.</li>
+      <li><strong>Profile rows for your selected application are present</strong> — e.g. <code>appstudio.*</code> rows when AppStudio is selected. If the board shows framework-core rows only, no application is selected (Settings → Selected application).</li>
+      <li><strong>Press "Re-check all" and watch statuses stream.</strong> The sweep should complete in well under 30 s.</li>
+      <li><strong>No row is left <code>Pending</code>.</strong> This is the sharpest single signal. Every row must settle to a real verdict; text like <em>"not yet detected"</em> or <em>"never detected"</em> lingering after a sweep means a detect is hanging, not that the machine is fine. (Historically this was a real defect — an unbounded sequential prerequisite gate — now bounded by <code>CheckCatalog.PrerequisiteProbeTimeout</code> at 3.5 s per prerequisite, under the engine's 5 s row budget.)</li>
+      <li><strong>Click a failing row.</strong> The detail sheet must populate: Explain, Evidence, Fix preview showing the <em>literal</em> command, and last run output. Manual-only checks show guidance and <strong>no</strong> Fix button — that is correct behaviour.</li>
+      <li><strong>Settings shows the real settings-file path</strong> for this machine, and — for a multi-machine deployment — the App Manager row's evidence names the URL you configured <strong>and its provenance</strong>, not <code>localhost</code>.</li>
+      <li><strong>Export report</strong> (<code>/report</code>) → produces <code>.md</code> + <code>.html</code>. <strong>Search both for any secret you configured: zero hits.</strong> <code>env-secret</code> rows must read <code>present (value never shown)</code>. This is the ADR-008 / REQ-NFR-002 guarantee and is worth checking once per deployment.</li>
+    </ol>
+
+    <p><strong>Reference result — this was run live while writing this guide</strong> (macOS Catalyst engine, roles <em>Device host (Mac)</em> + <em>App runner (Mac)</em> + <em>native dev</em>, AppStudio profile; canonical context #3 from <code>TrSetup-UsageGuide.md</code> §8):</p>
+
+    <blockquote>
+      <p>16 rows rendered and <strong>all settled — none Pending</strong>: 11 <code>Pass</code>, 1 <code>Warn</code>, 4 <code>Fail</code>. Passing rows carried live evidence (Xcode 26.6, .NET SDK 10.0.302, Node v22.23.1, Appium 3.5.2 with <code>xcuitest@11.17.7</code> + <code>mac2@4.0.4</code>, iOS 26.5 simulator runtime). The configured App Manager override went green with <code>Endpoint https://192.168.1.14:5101/health [configured in Settings → Endpoints ['AppManagerUrl'], self-signed certificate explicitly trusted] answered 200.</code> <code>appstudio.appmanager-secret</code> correctly stayed <strong>red</strong> — <em>"Secret env var 'APPMANAGER_API_KEY' is not set"</em> — which is the honest, expected result for a machine where the owner has not exported the key, and is exactly the state §4.4 exists to resolve. Settings rendered the endpoint override, the self-signed opt-in, the profile-details table and the settings-file path with zero horizontal overflow.</p>
+    </blockquote>
+
+    <p>A board with red rows is a <strong>successful deployment</strong> — TrSetup's job is to <em>find</em> broken prerequisites. Deployment failure looks like: no window, a blank board, or rows stuck Pending.</p>
+
+    <hr>
+
+    <h2 id="troubleshooting">7. Troubleshooting<a class="anchor-link" href="#troubleshooting">#</a></h2>
+
+    <p>Deployment-time issues only. Runtime/operational issues are in <code>TrSetup-UsageGuide.md</code> §7.</p>
+
+    <table>
+      <thead>
+        <tr><th>Symptom</th><th>Platform</th><th>Cause / fix</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>App will not open; <em>"cannot verify the developer"</em> / <em>"TrSetup is damaged"</em></td><td>macOS</td><td>Gatekeeper quarantine on an unsigned download — expected, not corruption. Do the <a href="#macos-the-one-time-trust-step">§5.2</a> trust step.</td></tr>
+        <tr><td><code>spctl</code> says <code>rejected</code></td><td>macOS</td><td>Correct for the current posture (<code>Signature=adhoc</code>, no Team ID, not notarized). Not fixable without a Developer ID certificate — REQ-FN-038.</td></tr>
+        <tr><td><em>"Windows protected your PC"</em></td><td>Windows</td><td>SmartScreen on an unsigned exe. <strong>More info</strong> → <strong>Run anyway</strong> (<a href="#windows-smartscreen-untested-end-to-end">§5.3</a>).</td></tr>
+        <tr><td>Exe won't start; missing DLL, or nothing happens at all</td><td>Windows</td><td>Either the exe was pulled out of its folder (<strong>ship and keep the whole folder</strong>), or the artifact was not actually self-contained. Check <code>System.Private.CoreLib.dll</code>, <code>Microsoft.WindowsAppRuntime*</code> and <code>Microsoft.UI.Xaml.dll</code> are beside <code>TrSetup.exe</code> — that is precisely what <code>package-windows.ps1</code> asserts.</td></tr>
+        <tr><td>App demands the .NET Desktop Runtime / Windows App SDK on a fresh machine</td><td>Windows</td><td><strong>A BRD-57 bootstrap violation</strong> — the artifact is framework-dependent and must not be shipped. Confirm <code>SelfContained</code> and <code>WindowsAppSDKSelfContained</code> resolved for the windows target, and that the build ran the packaging script (which would have hard-failed). This is the suspected cause of the 2026-07-20 report that "the exe build failed to install".</td></tr>
+        <tr><td><em>"This program might not have installed correctly"</em></td><td>Windows</td><td>Old builds only. Click <strong>"This program installed correctly"</strong> once; current builds embed the PCA-exemption manifest (<a href="#windows-smartscreen-untested-end-to-end">§5.3</a>).</td></tr>
+        <tr><td><code>NETSDK1100</code> (Windows targeting not enabled)</td><td>building on macOS</td><td>Expected — the csproj guard exists to prevent this. You cannot build the Windows head on a Mac (<a href="#which-host-os-each-build-requires">§2.1</a>).</td></tr>
+        <tr><td><code>NETSDK1005</code> (assets file has no target for <code>net10.0</code>)</td><td>building on macOS</td><td>You tried to force <code>-p:TargetFrameworks=…</code> past the guard. The global property corrupts the project graph. Use a Windows host.</td></tr>
+        <tr><td><code>NETSDK1139</code> / unknown TFM <code>net10.0-maccatalyst</code></td><td>building on Windows</td><td>Expected — the Catalyst TFM only activates on macOS.</td></tr>
+        <tr><td><code>Could not find a valid Xcode app bundle at '/Library/Developer/CommandLineTools'</code></td><td>building on macOS</td><td>The Mac has only the Command Line Tools; Catalyst needs <strong>full Xcode</strong>. <code>sudo xcode-select -s /Applications/Xcode.app</code>, and accept the licence.</td></tr>
+        <tr><td><code>package-mac.sh: no .app at …</code></td><td>building on macOS</td><td>Run <code>dotnet build src/TrSetup/TrSetup.csproj -f net10.0-maccatalyst -c Release</code> first — the script prints this exact command.</td></tr>
+        <tr><td>Restore fails on TrBlazeUI 1.0.7 (CI or a fresh clone)</td><td>any</td><td>The package is not on nuget.org. Register the <code>techierathore</code> GitHub Packages feed; in CI, set the <code>GH_PACKAGES_PAT</code> secret (<a href="#building-both-artifacts-in-ci-req-fn-041">§2.4</a>).</td></tr>
+        <tr><td><em>App Manager API reachable</em> stays red on a multi-machine setup</td><td>any</td><td>The profile default <code>https://localhost:5101/</code> is wrong for this machine. Set <strong>Settings → Endpoints → App Manager API URL</strong> (<a href="#point-this-machine-at-app-manager-multi-machine-deployments">§4.3</a>). Read the evidence line — it names the URL it actually probed.</td></tr>
+        <tr><td>That row is amber, not green</td><td>any</td><td>You pointed it at a URL answering 404 (App Manager's <code>/</code> does). Use <code>/health</code> or another 2xx URL.</td></tr>
+        <tr><td>That row reports a certificate failure</td><td>any</td><td>LAN App Manager serving the self-signed ASP.NET dev cert. Turn on <strong>"Trust a self-signed certificate for this endpoint"</strong> — off by default, per-endpoint, and only ever applies to a URL you configured yourself.</td></tr>
+        <tr><td><em>AppManager applicationId/API key configured</em> stays red although the shell shows the variable</td><td>any</td><td>The GUI app is not inheriting the shell environment. See the launchd / Explorer inheritance notes in <a href="#set-appmanager-api-key-per-os-durably">§4.4</a>.</td></tr>
+        <tr><td>Board rows show <code>○ N/A</code></td><td>any</td><td>Not an error — only the selected roles' and app's checks run. Widen roles in Settings.</td></tr>
+        <tr><td>A lowercase <code>trsetup</code> folder appears under <code>publish/&lt;rid&gt;/</code></td><td>any</td><td>Stale output of the deleted Spectre CLI head. <strong>Do not run or ship it</strong> — delete it.</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Where to look next:</strong> the app writes a rolling Serilog file (one per day, ~14 kept) — <code>%LOCALAPPDATA%\…\com.techierathore.trsetup\Data\logs\trsetup-&lt;date&gt;.log</code> on Windows, <code>~/Library/Containers/com.techierathore.trsetup/Data/Library/Application Support/logs/trsetup-&lt;date&gt;.log</code> on macOS. Open the newest one before filing anything.</p>
+
+    <hr>
+
+    <h2 id="known-gaps-and-what-is-not-yet-proven">8. Known gaps and what is not yet proven<a class="anchor-link" href="#known-gaps-and-what-is-not-yet-proven">#</a></h2>
+
+    <p>Stated plainly so nobody mistakes intent for evidence.</p>
+
+    <h3 id="not-proven">Not proven<a class="anchor-link" href="#not-proven">#</a></h3>
+
+    <ol>
+      <li><strong>⚠ The Windows artifact has never been built.</strong> Not on a developer machine, not in CI, not once. <code>dotnet publish</code> for the Windows head has never completed in this project. Everything about the Windows artifact — its existence, its size, whether the self-containment assertion passes, whether the exe starts — is <strong>inference from MSBuild property evaluation performed on a Mac</strong>. REQ-FN-039 is marked <code>Implemented</code> at 60% for exactly this reason.</li>
+      <li><strong>⚠ The Windows artifact has never been launched on a clean image.</strong> That single test is what closes REQ-FN-036 / BRD-57 and REQ-FN-039 / BRD-60. Until it runs, the non-circular bootstrap is <strong>proven on macOS only</strong>.</li>
+      <li><strong>⚠ The CI workflow has never executed.</strong> It cannot run until <code>GH_PACKAGES_PAT</code> exists and the branch is pushed. YAML structure was checked locally; behaviour was not.</li>
+      <li><strong><code>win-arm64</code> is doubly unproven.</strong> It is declared in <code>RuntimeIdentifiers</code> and matrixed in CI, and the conditional-default logic was property-verified — but no arm64 artifact has been produced or run.</li>
+      <li><strong>Windows SmartScreen behaviour is predicted, not observed</strong> — inferred from the unsigned posture, since there is no artifact to test.</li>
+      <li><strong>Windows artifact size is unmeasured.</strong> The ~150 MB+ figure is an expectation for a self-contained MAUI/WinUI publish, not a measurement.</li>
+    </ol>
+
+    <h3 id="proven">Proven<a class="anchor-link" href="#proven">#</a></h3>
+
+    <ul>
+      <li><strong>macOS is compliant with BRD-57.</strong> 56 <code>System.*</code> assemblies bundled in <code>Contents/MonoBundle</code>; a packaged <code>.dmg</code> launched on a machine whose only SDK lived under <code>~/.dotnet</code>. Bundle 156 MB, <code>.dmg</code> 49 MB, universal (arm64 + x86_64).</li>
+      <li><strong>The <code>.dmg</code> mounts with a correct drag-install layout</strong> and the app inside is the same build.</li>
+      <li><strong>The Gatekeeper block is real, not theoretical.</strong> Reproduced via a simulated download: quarantine propagated to the <code>.app</code> and <code>spctl</code> returned <code>rejected</code>; the documented <code>xattr -dr</code> step cleared it and the app launched.</li>
+      <li><strong>The board, the endpoint override, and the self-signed opt-in work live</strong> — see the reference result in <a href="#verifying-a-successful-deployment">§6</a>.</li>
+    </ul>
+
+    <h3 id="open-gaps-accepted-or-tracked">Open gaps (accepted or tracked)<a class="anchor-link" href="#open-gaps-accepted-or-tracked">#</a></h3>
+
+    <table>
+      <thead>
+        <tr><th>Gap</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>No code signing on either platform</strong></td><td>REQ-FN-038 <code>Blocked</code> — parked by owner (no Apple Developer account). Every user hits a trust prompt. See <a href="#this-is-an-open-production-gap-recommendation">§5.4</a>.</td></tr>
+        <tr><td><strong>No installer on Windows</strong></td><td>Deliberate (<code>WindowsPackageType=None</code>, ADR-001). Users extract a folder; there is no uninstaller. Inno Setup / WiX pointed at the published folder is the upgrade path if wanted.</td></tr>
+        <tr><td><strong>No auto-update</strong></td><td>Upgrades are manual re-downloads. Settings persist across upgrades.</td></tr>
+        <tr><td><strong>Large artifacts</strong></td><td>Accepted trade for the non-circular bootstrap. Not fixable by trimming — <code>PublishTrimmed</code> is unsupported for MAUI/WinUI and breaks XAML/reflection at runtime.</td></tr>
+        <tr><td><strong>Private TrBlazeUI feed dependency</strong></td><td>Anyone building from source needs a <code>read:packages</code> PAT for the <code>techierathore</code> feed. Does not affect users of a prebuilt artifact.</td></tr>
+        <tr><td><strong><code>APPMANAGER_API_KEY</code> is owner-supplied</strong></td><td>By design (ADR-008) — TrSetup never stores secrets. Cannot be automated away; only documented (<a href="#point-this-machine-at-app-manager-multi-machine-deployments">§4.3</a> / <a href="#set-appmanager-api-key-per-os-durably">§4.4</a>).</td></tr>
+        <tr><td><strong>8 REQ pending external UAT</strong></td><td>Destructive fixers and host-bound boots — <code>TrSetup-UsageGuide.md</code> §6 is exactly that list. 0 FAIL.</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <p><em>Created 2026-07-21 in response to the owner's request to document the process for actual production deployment by users. Grounded in <code>build/package-mac.sh</code>, <code>build/package-windows.ps1</code>, <code>src/TrSetup/TrSetup.csproj</code>, <code>.github/workflows/build-artifacts.yml</code>, and the REQ-FN-036/037/038/039/040/041 rows of <code>docs/TrSetup-Checklist.md</code>. macOS facts re-confirmed live on this Mac (codesign, spctl, MonoBundle assembly count, artifact sizes); the verification recipe in §6 was executed against the running board. Windows facts are marked untested throughout because no Windows artifact exists.</em></p>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

@@ -84,22 +84,48 @@
         <div>
             <label class="ts-field-label">Endpoints</label>
             <div class="ts-setup-lead" style="margin-top:0;margin-bottom:12px;">
-                Network addresses the checks target — an IP or hostname, never a secret. Leave blank when not used.
+                Network addresses and service URLs the checks target — never a secret. Leave blank to use the
+                profile's own default.
             </div>
             @foreach (var vEndpoint in KnownEndpoints)
             {
                 var vValue = objEndpoints[vEndpoint.Name];
-                var vValid = IsValidEndpoint(vValue);
+                var vValid = IsValidEndpointValue(vEndpoint, vValue);
                 <div style="margin-bottom:12px;" data-testid="@($"endpoint-{vEndpoint.Name}")">
                     <Label For="@($"endpoint-input-{vEndpoint.Name}")" Class="ts-field-label">@vEndpoint.Label</Label>
                     <Input Id="@($"endpoint-input-{vEndpoint.Name}")" Type="InputType.Text"
                            Value="@vValue" ValueChanged="@(aVal => OnEndpointChanged(vEndpoint.Name, aVal))"
                            Placeholder="@vEndpoint.Placeholder" AriaInvalid="@(!vValid)" Class="w-full" />
+                    @if (vEndpoint.Hint is { Length: > 0 } vHint)
+                    {
+                        <div class="ts-switch-sub" style="margin-top:4px;">@vHint</div>
+                    }
                     @if (!vValid)
                     {
                         <div class="ts-switch-sub" style="color:var(--ts-fail);margin-top:4px;"
                              data-testid="@($"endpoint-error-{vEndpoint.Name}")">
-                            Enter a valid IP address or hostname.
+                            @(vEndpoint.Kind == EndpointKind.Url
+                                ? "Enter an absolute http:// or https:// URL."
+                                : "Enter a valid IP address or hostname.")
+                        </div>
+                    }
+                    @if (vEndpoint.AllowsCertificateTrust)
+                    {
+                        <div class="ts-switch-row" style="margin-top:8px;"
+                             data-testid="@($"endpoint-tls-{vEndpoint.Name}")">
+                            <Switch Checked="@objTrustedTls.Contains(vEndpoint.Name)"
+                                    CheckedChanged="@(aOn => OnTlsTrustChanged(vEndpoint.Name, aOn))"
+                                    Id="@($"endpoint-tls-input-{vEndpoint.Name}")" />
+                            <div>
+                                <Label For="@($"endpoint-tls-input-{vEndpoint.Name}")" Class="ts-switch-label">
+                                    Trust a self-signed certificate for this endpoint
+                                </Label>
+                                <div class="ts-switch-sub">
+                                    Off by default. Turn on only for a service on your own LAN that serves the ASP.NET
+                                    development certificate — TrSetup then skips certificate validation for THIS
+                                    endpoint alone. Every other probe keeps full validation.
+                                </div>
+                            </div>
                         </div>
                     }
                 </div>
@@ -217,26 +243,64 @@
     private bool objIsNativeDev;
     private string objApp = RoleCatalog.FrameworkOnlyValue;
     private readonly Dictionary<string, string> objEndpoints = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> objTrustedTls = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<ResolvedRequirement>? objResolved;
     private string? objProfileError;
     private bool objIsSaving;
     private string? objSaveError;
 
-    /// <summary>One editable named endpoint the Settings screen renders (label + placeholder).</summary>
+    /// <summary>What an endpoint field holds, which decides how it is validated.</summary>
+    private enum EndpointKind
+    {
+        /// <summary>A bare IP address or hostname (e.g. the LAN Mac IP).</summary>
+        Address,
+
+        /// <summary>An absolute http/https service URL (e.g. the App Manager API base).</summary>
+        Url
+    }
+
+    /// <summary>One editable named endpoint the Settings screen renders.</summary>
     /// <param name="Name">The endpoint key persisted in <see cref="TrSetupSettings.Endpoints"/> (e.g. <c>MacIp</c>).</param>
     /// <param name="Label">The human field label.</param>
-    /// <param name="Placeholder">Example address shown when empty.</param>
-    private sealed record EndpointField(string Name, string Label, string Placeholder);
+    /// <param name="Placeholder">Example value shown when empty.</param>
+    /// <param name="Kind">Whether the value is an address or an absolute URL (drives validation).</param>
+    /// <param name="Hint">Optional one-line explanation rendered under the input.</param>
+    /// <param name="AllowsCertificateTrust">
+    /// Whether the field offers the explicit opt-in "trust a self-signed certificate" switch
+    /// (REQ-FN-028) — only meaningful for an https URL the user points at their own LAN.
+    /// </param>
+    private sealed record EndpointField(
+        string Name,
+        string Label,
+        string Placeholder,
+        EndpointKind Kind = EndpointKind.Address,
+        string? Hint = null,
+        bool AllowsCertificateTrust = false);
 
-    /// <summary>The known endpoints the UI edits — today only the LAN Mac IP the Bridges checks probe.</summary>
+    /// <summary>
+    /// The known endpoints the UI edits: the LAN Mac IP the Bridges checks probe, and the App
+    /// Manager API base URL (REQ-FN-028) — the profile declares <c>https://localhost:5101/</c>,
+    /// which is only right on a single-machine setup; a Mac app-runner points this at the Windows
+    /// device-host running the service.
+    /// </summary>
     private static readonly IReadOnlyList<EndpointField> KnownEndpoints =
     [
-        new EndpointField("MacIp", "Mac device-host IP", "192.168.1.50")
+        new EndpointField("MacIp", "Mac device-host IP", "192.168.1.50"),
+        new EndpointField(
+            "AppManagerUrl",
+            "App Manager API URL",
+            "https://192.168.1.14:5101/health",
+            EndpointKind.Url,
+            "Leave blank to use the profile default (https://localhost:5101/). Set it when App Manager runs on "
+            + "another machine — e.g. this Mac app-runner pointing at the Windows device-host. Point it at a URL "
+            + "that answers 2xx (App Manager serves /health); a URL that answers 404 reads as reachable-but-unhealthy.",
+            AllowsCertificateTrust: true)
     ];
 
     private bool HasBaseRole => (objRoles & ~MachineRole.NativeDev) != MachineRole.None;
 
-    private bool AllEndpointsValid => KnownEndpoints.All(aField => IsValidEndpoint(objEndpoints[aField.Name]));
+    private bool AllEndpointsValid =>
+        KnownEndpoints.All(aField => IsValidEndpointValue(aField, objEndpoints[aField.Name]));
 
     private bool CanSave => HasBaseRole && AllEndpointsValid && !objIsSaving;
 
@@ -249,6 +313,11 @@
         foreach (var vField in KnownEndpoints)
         {
             objEndpoints[vField.Name] = Board.Endpoints.TryGetValue(vField.Name, out var vExisting) ? vExisting : string.Empty;
+        }
+
+        foreach (var vKey in Board.TrustedSelfSignedEndpoints)
+        {
+            objTrustedTls.Add(vKey);
         }
 
         LoadProfile();
@@ -278,6 +347,21 @@
 
     private void OnEndpointChanged(string aName, string? aValue) => objEndpoints[aName] = aValue ?? string.Empty;
 
+    /// <summary>Records the per-endpoint opt-in to trust an otherwise-untrusted TLS certificate.</summary>
+    /// <param name="aName">The endpoint key.</param>
+    /// <param name="aIsTrusted">Whether the user turned trust on.</param>
+    private void OnTlsTrustChanged(string aName, bool aIsTrusted)
+    {
+        if (aIsTrusted)
+        {
+            objTrustedTls.Add(aName);
+        }
+        else
+        {
+            objTrustedTls.Remove(aName);
+        }
+    }
+
     /// <summary>Loads the source-tagged profile details for the selected app (framework-only shows an Empty state).</summary>
     private void LoadProfile()
     {
@@ -296,6 +380,30 @@
         {
             objProfileError = vEx.Message;
         }
+    }
+
+    /// <summary>Whether a value is valid for its field's kind; blank is always allowed (unset).</summary>
+    /// <param name="aField">The field being validated.</param>
+    /// <param name="aValue">The current value.</param>
+    /// <returns><c>true</c> when the value is acceptable.</returns>
+    private static bool IsValidEndpointValue(EndpointField aField, string? aValue)
+        => aField.Kind == EndpointKind.Url ? IsValidUrl(aValue) : IsValidEndpoint(aValue);
+
+    /// <summary>
+    /// Whether the value is an absolute http/https URL; blank is allowed (unset — the profile's own
+    /// default URL is then used).
+    /// </summary>
+    /// <param name="aValue">The current value.</param>
+    /// <returns><c>true</c> when blank or a well-formed absolute http(s) URL.</returns>
+    private static bool IsValidUrl(string? aValue)
+    {
+        if (string.IsNullOrWhiteSpace(aValue))
+        {
+            return true;
+        }
+
+        return Uri.TryCreate(aValue.Trim(), UriKind.Absolute, out var vUri)
+               && (vUri.Scheme == Uri.UriSchemeHttp || vUri.Scheme == Uri.UriSchemeHttps);
     }
 
     /// <summary>Whether the value is a valid endpoint address — an IPv4/IPv6 literal or a hostname; blank is allowed (unset).</summary>
@@ -328,7 +436,10 @@
             var vEndpoints = objEndpoints
                 .Where(aPair => !string.IsNullOrWhiteSpace(aPair.Value))
                 .ToDictionary(aPair => aPair.Key, aPair => aPair.Value.Trim(), StringComparer.OrdinalIgnoreCase);
-            await Board.SaveSettingsAsync(vRoles, vApp, vEndpoints);
+            // Trust is only meaningful for an endpoint that actually has a configured value —
+            // dropping the rest keeps a stale opt-in from silently re-arming if the URL comes back.
+            var vTrusted = objTrustedTls.Where(vEndpoints.ContainsKey).ToList();
+            await Board.SaveSettingsAsync(vRoles, vApp, vEndpoints, vTrusted);
             Nav.NavigateTo("/");
         }
         catch (Exception vEx)

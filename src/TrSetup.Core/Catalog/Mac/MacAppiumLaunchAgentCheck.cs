@@ -24,13 +24,34 @@ public sealed class MacAppiumLaunchAgentCheck : MacCheckBase
     /// <summary>
     /// The plist body (no XML declaration — a leading marker comment keeps the file well-formed):
     /// runs Appium bound to 0.0.0.0:4723 at load, restarting if it exits.
+    ///
+    /// REQ-FN-016: this is the server that ACTUALLY SERVES the drivers, so it must run in exactly the
+    /// environment <see cref="MacAppiumDriversCheck"/> installs into, or the board's green row is a
+    /// lie. Two defects were fixed here:
+    ///
+    /// 1. <b>No APPIUM_HOME.</b> launchd starts the agent with no meaningful working directory, so
+    ///    Appium resolved its extension manifest cwd-relative — i.e. the served server could load a
+    ///    completely different (older, incompatible) driver set than the one the fixer installed and
+    ///    the detect verified. It is now pinned to the same managed home.
+    /// 2. <b><c>bash -lc</c> does not see the managed Node.</b> mac.node exports its bin dir from
+    ///    <c>~/.zprofile</c>, which a LOGIN BASH shell never reads (it reads <c>~/.bash_profile</c>).
+    ///    So on a machine TrSetup itself provisioned, <c>appium</c> was simply not on the agent's
+    ///    PATH. PATH is now set explicitly, managed bin dir first.
     /// </summary>
-    private const string PlistBody =
+    /// <returns>The plist XML to write inside the managed block.</returns>
+    private static string BuildPlistBody() =>
         "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n" +
         "<plist version=\"1.0\"><dict>\n" +
         "  <key>Label</key><string>" + AgentLabel + "</string>\n" +
+        "  <key>EnvironmentVariables</key>\n" +
+        "  <dict>\n" +
+        "    <key>APPIUM_HOME</key><string>" + MacAppiumDriversCheck.ManagedAppiumHome + "</string>\n" +
+        "    <key>PATH</key><string>" + MacNodeCheck.ManagedNodeBinDir +
+        ":/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>\n" +
+        "  </dict>\n" +
         "  <key>ProgramArguments</key>\n" +
-        "  <array><string>/bin/bash</string><string>-lc</string><string>appium --address 0.0.0.0 --port 4723</string></array>\n" +
+        "  <array><string>/bin/bash</string><string>-lc</string>" +
+        "<string>appium --address 0.0.0.0 --port 4723</string></array>\n" +
         "  <key>RunAtLoad</key><true/>\n" +
         "  <key>KeepAlive</key><true/>\n" +
         "</dict></plist>";
@@ -122,7 +143,7 @@ public sealed class MacAppiumLaunchAgentCheck : MacCheckBase
     private async Task<FixResult> FixCoreAsync(ConsentToken aConsent, CancellationToken aCancellationToken)
     {
         var vPath = objPlistPath();
-        var vWrite = objFix!.ConfigWriter.UpsertBlock(vPath, AgentLabel, PlistBody, CommentSyntax.Xml);
+        var vWrite = objFix!.ConfigWriter.UpsertBlock(vPath, AgentLabel, BuildPlistBody(), CommentSyntax.Xml);
         var vLoad = await RunMacCommandAsync(
             "launchctl", $"load -w {vPath}", TimeSpan.FromSeconds(30), aCancellationToken).ConfigureAwait(false);
         return new FixResult(vLoad.Succeeded, FixExecution.JoinOutput(vWrite.Evidence, vLoad.ToEvidenceString()));

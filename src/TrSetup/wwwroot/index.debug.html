@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!-- DEBUG-ONLY host document. Byte-for-byte index.html plus the automation-ids script tag at the
+     bottom; keep the two in sync when editing either. MainPage points BlazorWebView here under
+     #if DEBUG, and TrSetup.csproj drops this file from Release builds entirely. The WHY lives in
+     the AUTOMATION-ID MIRROR GATE comment in TrSetup.csproj. -->
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -27,10 +31,10 @@
     </div>
 
     <script src="_framework/blazor.webview.js" autostart="false"></script>
-    <!-- NOTE: this is the SHIPPING host document and it deliberately does NOT load
-         _content/TrSetupUI/js/automation-ids.js — see the AUTOMATION-ID MIRROR GATE comment in
-         TrSetup.csproj. Debug builds load index.debug.html instead, which is this file plus that
-         one script tag; keep the two in sync when editing either. -->
+    <!-- Mirrors data-testid -> aria-placeholder so XCUITest/Appium can locate Blazor controls
+         inside the WKWebView (REQ-FN-030). See the file header of automation-ids.js for the
+         attribute experiment, and TrSetup.csproj for why it is Debug-only. -->
+    <script src="_content/TrSetupUI/js/automation-ids.js"></script>
 
 </body>
 

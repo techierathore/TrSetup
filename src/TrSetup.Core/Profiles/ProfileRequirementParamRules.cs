@@ -19,7 +19,7 @@ internal static class ProfileRequirementParamRules
             [ProfileRequirementTypes.Sdk] = Array.Empty<string>(),              // reads: version (optional)
             [ProfileRequirementTypes.Workload] = new[] { "workload" },          // reads: workload
             [ProfileRequirementTypes.CliTool] = new[] { "command" },            // reads: command, versionArgs?, minVersion?
-            [ProfileRequirementTypes.Endpoint] = new[] { "url" },               // reads: url
+            [ProfileRequirementTypes.Endpoint] = new[] { "url" },               // reads: url, urlSettingKey?
             [ProfileRequirementTypes.NugetFeed] = new[] { "url" },              // reads: url, patEnvVar?
             [ProfileRequirementTypes.EnvSecret] = new[] { "envVar" },           // reads: envVar (presence-only, ADR-008)
             [ProfileRequirementTypes.AppiumHead] = new[] { "url" },             // reads: url (probes url + /status)

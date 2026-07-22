@@ -96,7 +96,10 @@ test('REQ-UI-006 endpoint validation gates Save; edit persists', async ({ page }
   // is a test-harness artifact, not a validation bug (the diagnostic proved typing → error → disabled).
   const type = async (value: string) => {
     await ipInput.click();
-    await ipInput.press('Control+a');
+    // ControlOrMeta, not Control: on macOS Ctrl+A is the emacs "start of line" binding, NOT
+    // select-all, so the clear silently no-opped and every toPass() retry appended to the field
+    // ("192.168.1.7792.168.1.77…"), failing the suite on Mac only.
+    await ipInput.press('ControlOrMeta+a');
     await ipInput.press('Delete');
     await page.waitForTimeout(120);
     await ipInput.pressSequentially(value, { delay: 140 });

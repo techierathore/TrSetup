@@ -173,9 +173,20 @@ internal sealed class FakeHttpStatusProbe : IHttpStatusProbe
     /// <summary>Canned responses by exact URL.</summary>
     public Dictionary<string, HttpProbeResult> Responses { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Every (url, allowUntrustedCertificate) pair the probe was asked for, in order.</summary>
+    public List<(string Url, bool AllowUntrustedCertificate)> Requests { get; } = new();
+
     /// <inheritdoc />
     public Task<HttpProbeResult> GetAsync(string aUrl, CancellationToken aCancellationToken = default)
+        => GetAsync(aUrl, false, aCancellationToken);
+
+    /// <inheritdoc />
+    public Task<HttpProbeResult> GetAsync(
+        string aUrl,
+        bool aAllowUntrustedCertificate,
+        CancellationToken aCancellationToken = default)
     {
+        Requests.Add((aUrl, aAllowUntrustedCertificate));
         if (Responses.TryGetValue(aUrl, out var vResult))
         {
             return Task.FromResult(vResult);

@@ -67,7 +67,25 @@ public sealed class JsonSettingsStore : ISettingsStore
         var vSettings = await JsonSerializer
             .DeserializeAsync<TrSetupSettings>(vStream, SerializerOptions, aCancellationToken)
             .ConfigureAwait(false);
-        return new SettingsLoadResult(vSettings ?? new TrSetupSettings(), IsFirstRun: false);
+        return new SettingsLoadResult(Normalize(vSettings ?? new TrSetupSettings()), IsFirstRun: false);
+    }
+
+    /// <summary>
+    /// Restores the case-insensitive comparers the settings model declares. The serializer
+    /// constructs fresh collections for the settable properties, which come back with the DEFAULT
+    /// ordinal comparer — so a reloaded <c>Endpoints["appmanagerurl"]</c> or a trust opt-in whose
+    /// casing differs from the profile's key would silently miss after a restart, while working
+    /// perfectly in the session that saved it.
+    /// </summary>
+    /// <param name="aSettings">The freshly deserialized settings.</param>
+    /// <returns>The same instance with case-insensitive lookup collections.</returns>
+    private static TrSetupSettings Normalize(TrSetupSettings aSettings)
+    {
+        aSettings.Endpoints = new Dictionary<string, string>(aSettings.Endpoints, StringComparer.OrdinalIgnoreCase);
+        aSettings.AppRepoPaths = new Dictionary<string, string>(aSettings.AppRepoPaths, StringComparer.OrdinalIgnoreCase);
+        aSettings.TrustedSelfSignedEndpoints =
+            new HashSet<string>(aSettings.TrustedSelfSignedEndpoints, StringComparer.OrdinalIgnoreCase);
+        return aSettings;
     }
 
     /// <inheritdoc />
