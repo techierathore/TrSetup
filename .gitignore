@@ -36,3 +36,8 @@ logs/
 
 # Build artifacts (REQ-FN-037): .dmg/installer output — release assets, never committed
 /artifacts/
+
+# TechieFlow agent artifacts — machine-generated test harness & logs, never commit (managed by scaffold/update-framework.sh)
+tests/.artifacts/
+test-results-*/
+/scripts-*/
